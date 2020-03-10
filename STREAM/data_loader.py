@@ -27,7 +27,7 @@ class DataLoader(data.Dataset):
         self.transform = transform
 
     def __getitem__(self, index):
-        coco = self.cooc
+        coco = self.coco
         vocab = self.vocab
         ann_id = self.ids[index]
         caption = coco.anns[ann_id]['caption']

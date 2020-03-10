@@ -32,6 +32,7 @@ from torch.nn.utils.rnn import pack_padded_sequence
 from tqdm import tqdm
 from transformers import AlbertTokenizer, AlbertModel
 
+from processData import Vocabulary
 from data_loader import get_loader
 
 # TODO: Need this?
@@ -85,15 +86,15 @@ class Encoder(nn.Module):
 # Attention Decoder
 ####################
 class Decoder(nn.Module):
-    def __init__(self, vocab_size, use_glove, use_bert):
+    def __init__(self, vocab_size, use_glove, use_albert):
         super(Decoder, self).__init__()
         self.encoder_dim = 2048
         self.attention_dim = 512
-        self.use_bert = use_bert
+        self.use_albert = use_albert
 
         if use_glove:
             self.embed_dim = 300
-        elif use_bert:
+        elif use_albert:
             self.embed_dim = 768
         else:
             self.embed_dim = 512
@@ -118,7 +119,7 @@ class Decoder(nn.Module):
         self.sigmoid = nn.Sigmoid()
         self.fc = nn.Linear(self.decoder_dim, self.vocab_size)
 
-        if not use_bert:
+        if not use_albert:
             self.embedding = nn.Embedding(vocab_size, self.embed_dim)
             self.embedding.weight.data.uniform_(-0.1, 0.1)
 
@@ -141,9 +142,9 @@ class Decoder(nn.Module):
         num_pixels = encoder_out.size(1)
 
         # load bert or regular embeddings
-        if not self.use_bert:
+        if not self.use_albert:
             embeddings = self.embedding(encoded_captions)
-        elif self.use_bert:
+        elif self.use_albert:
             embeddings = []
             for cap_idx in encoded_captions:
                 # padd caption to correct size
@@ -153,6 +154,8 @@ class Decoder(nn.Module):
                 cap = ' '.join([vocab.idx2word[word_idx.item()] for word_idx in cap_idx])
                 cap = u'[CLS] '+cap
 
+                print('cap: ', cap)
+
                 tokenized_cap = tokenizer.tokenize(cap)
                 indexed_tokens = tokenizer.convert_tokens_to_ids(tokenized_cap)
                 tokens_tensor = torch.tensor([indexed_tokens]).to(device)
@@ -160,9 +163,10 @@ class Decoder(nn.Module):
                 with torch.no_grad():
                     encoded_layers, _ = model(tokens_tensor)
 
-                # TODO: Figure out why 11
-                # Squeeze away first dimension in dim 12 (idx 11) if dim size is 1
-                albert_embedding = encoded_layers[11].squeeze(0)
+                # TODO: Figure out why is wasn't "encoded_layers[11].squeeze(0)"
+                albert_embedding = encoded_layers.squeeze(0)
+                print('tokens_tensor.size(): ', tokens_tensor.size())
+                print('albert_embedding.size(): ', albert_embedding.size())
 
                 split_cap = cap.split()
                 tokens_embedding = []
@@ -444,10 +448,10 @@ def init_model(device, vocab):
 
     if cfg.FROM_CHECKPOINT:
         encoder = Encoder().to(device)
-        decoder = Decoder(vocab_size=len(vocab), use_glove=cfg.GLOVE_MODEL, use_bert=cfg.BERT_MODEL).to(device)
+        decoder = Decoder(vocab_size=len(vocab), use_glove=cfg.GLOVE_MODEL, use_albert=cfg.ALBERT_MODEL).to(device)
 
         if torch.cuda.is_available():
-            if cfg.BERT_MODEL:
+            if cfg.ALBERT_MODEL:
                 print('Pre-Trained BERT Model')
                 encoder_checkpoint = torch.load('./checkpoints/encoder_bert')
                 decoder_checkpoint = torch.load('./checkpoints/decoder_bert')
@@ -460,7 +464,7 @@ def init_model(device, vocab):
                 encoder_checkpoint = torch.load('./checkpoints/encoder_baseline')
                 decoder_checkpoint = torch.load('./checkpoints/decoder_baseline')
         else:
-            if cfg.BERT_MODEL:
+            if cfg.ALBERT_MODEL:
                 print('Pre-Trained BERT Model')
                 encoder_checkpoint = torch.load('./checkpoints/encoder_bert', map_location='cpu')
                 decoder_checkpoint = torch.load('./checkpoints/decoder_bert', map_location='cpu')
@@ -480,7 +484,7 @@ def init_model(device, vocab):
 
     else:
         encoder = Encoder().to(device)
-        decoder = Decoder(vocab_size=len(vocab), use_glove=cfg.GLOVE_MODEL, use_bert=cfg.BERT_MODEL).to(device)
+        decoder = Decoder(vocab_size=len(vocab), use_glove=cfg.GLOVE_MODEL, use_albert=cfg.ALBERT_MODEL).to(device)
         decoder_optimizer = torch.optim.Adam(params=decoder.parameters(), lr=cfg.DECODER_LR)
 
     return encoder, decoder, decoder_optimizer
