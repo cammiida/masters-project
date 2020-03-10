@@ -512,7 +512,7 @@ if __name__ == '__main__':
     model.eval()
 
     # Load GloVe
-    glove_vectors = pickle.load(open('glove.6B/glove_words.pkl', 'rb'))
+    glove_vectors = pickle.load(open('../data/glove.6B/glove_words.pkl', 'rb'))
     glove_vectors = torch.tensor(glove_vectors)
 
 
