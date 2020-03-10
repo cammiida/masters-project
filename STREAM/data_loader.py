@@ -39,7 +39,7 @@ class DataLoader(data.Dataset):
             image = self.transform(image)
 
         tokens = nltk.tokenize.word_tokenize(str(caption).lower())
-        caption = []
+        caption = list()
         caption.append(vocab('<start>'))
         caption.extend([vocab(token) for token in tokens])
         caption.append(vocab('<end>'))

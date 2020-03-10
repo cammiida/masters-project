@@ -530,16 +530,16 @@ if __name__ == '__main__':
     train_loader = get_loader('train', vocab, cfg.BATCH_SIZE)
     val_loader = get_loader('val', vocab, cfg.BATCH_SIZE)
 
-    criterion = nn.CrossEntropyLoss().to(device)
-    encoder, decoder, decoder_optimizer = init_model(device, vocab)
+    crit = nn.CrossEntropyLoss().to(device)
+    enc, dec, dec_optim = init_model(device, vocab)
 
     ######################
     # Run training/validation
     ######################
 
     if cfg.TRAIN_MODEL:
-        train(encoder=encoder, decoder=decoder, decoder_optimizer=decoder_optimizer,
-              criterion=criterion, train_loader=train_loader)
+        train(encoder=enc, decoder=dec, decoder_optimizer=dec_optim,
+              criterion=crit, train_loader=train_loader)
 
     if cfg.VALID_MODEL:
-        validate(encoder=encoder, decoder=decoder, criterion=criterion, val_loader=val_loader)
+        validate(encoder=enc, decoder=dec, criterion=crit, val_loader=val_loader)

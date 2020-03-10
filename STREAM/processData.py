@@ -95,8 +95,10 @@ def main(caption_path,vocab_path,threshold):
 
     print("done resizing images...")
 
-caption_path = '../data/annotations/captions_train2014.json'
-vocab_path = '../data/vocab.pkl'
-threshold = 5
 
-main(caption_path,vocab_path,threshold)
+if __name__ == '__main__':
+    caption_path = '../data/annotations/captions_train2014.json'
+    vocab_path = '../data/vocab.pkl'
+    threshold = 5
+
+    main(caption_path,vocab_path,threshold)
