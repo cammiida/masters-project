@@ -164,7 +164,7 @@ docs/source/scripts/activation_images/
 *.user
 
 # PyCharm files
-.idea
+../.idea
 
 # OSX dir files
 .DS_Store
@@ -251,3 +251,5 @@ TAGS
 .ccls-cache/
 
 data
+STREAM/glove.6B
+.idea

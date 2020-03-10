@@ -11,44 +11,44 @@ This script has the Encoder and Decoder models and training/validation scripts.
 Edit the parameters sections of this file to specify which models to load/run
 '''
 
+from cfg.config import cfg, cfg_from_file
+
 import pickle
-import torch.nn as nn
-import torch
-from torch.nn.utils.rnn import pack_padded_sequence
-from data_loader import get_loader
-from nltk.translate.bleu_score import corpus_bleu
-from tqdm import tqdm
-import torchvision.models as models
-import numpy as np
-import matplotlib.pyplot as plt
-import skimage.transform
-from PIL import Image
-from transformers import AlbertTokenizer, AlbertModel
+import argparse
+import pprint
+import os
+import sys
+
 import imageio
+import matplotlib.pyplot as plt
+import numpy as np
+import skimage.transform
+import torch
+import torch.nn as nn
+import torchvision.models as models
+from PIL import Image
+from nltk.translate.bleu_score import corpus_bleu
+from torch.nn.utils.rnn import pack_padded_sequence
+from tqdm import tqdm
+from transformers import AlbertTokenizer, AlbertModel
+
+from data_loader import get_loader
+
+# TODO: Need this?
+#dir_path = (os.path.abspath(os.path.join(os.path.realpath(__file__), './.')))
+#sys.path.append(dir_path)
 
 
-###################
-# START Parameters
-###################
+def parse_args():
+    parser = argparse.ArgumentParser(description='Train a STREAM network')
+    parser.add_argument('--cfg', dest='cfg_file',
+                        help='optional config file',
+                        default=None, type=str)
+    parser.add_argument('--dara_dir', dest='data_dir', type=str, default='')
+    # TODO: Use this
+    parser.add_argument('--gpu', dest='gpu_id', type=int, default=-1)
+    return parser.parse_args()
 
-# hyperparams
-grad_clip = 5.
-num_epochs = 4
-batch_size = 32
-decoder_lr = 0.0004
-
-# if both are false them model = baseline
-
-glove_model = False
-bert_model = False
-
-from_checkpoint = False
-train_model = True
-valid_model = False
-
-###################
-# END Parameters
-###################
 
 # loss
 class loss_obj(object):
@@ -62,24 +62,6 @@ class loss_obj(object):
         self.count += n
         self.avg = self.sum / self.count
 
-
-# OPTIONAL: if you want to have more information on what's happening under the hood, activate the logger as follows
-import logging
-logging.basicConfig(level=logging.INFO)
-
-# Device configuration
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
-# Load pretrained model tokenizer (vocabulary)
-tokenizer = AlbertTokenizer.from_pretrained('albert-base-v2')
-
-# Load pre-trained model (weights)
-model = AlbertModel.from_pretrained('albert-base-v2').to(device)
-model.eval()
-
-# Load GloVe
-glove_vectors = pickle.load(open('glove.6B/glove_words.pkl', 'rb'))
-glove_vectors = torch.tensor(glove_vectors)
 
 
 #####################
@@ -251,76 +233,14 @@ class Decoder(nn.Module):
         return predictions, encoded_captions, dec_len, alphas
 
 
-    # vocab indices
-PAD = 0
-START = 1
-END = 2
-UNK = 3
-
-# Load vocabulary
-with open('data/vocab.pkl', 'rb') as f:
-    vocab = pickle.load(f)
-
-# load data
-train_loader = get_loader('train', vocab, batch_size)
-val_loader = get_loader('val', vocab, batch_size)
-
-
-#############
-# Init model
-#############
-
-criterion = nn.CrossEntropyLoss().to(device)
-
-if from_checkpoint:
-    encoder = Encoder().to(device)
-    decoder = Decoder(vocab_size=len(vocab), use_glove=glove_model, use_bert=bert_model).to(device)
-
-    if torch.cuda.is_available():
-        if bert_model:
-            print('Pre-Trained BERT Model')
-            encoder_checkpoint = torch.load('./checkpoints/encoder_bert')
-            decoder_checkpoint = torch.load('./checkpoints/decoder_bert')
-        elif glove_model:
-            print('Pre-Trained GloVe Model')
-            encoder_checkpoint = torch.load('./checkpoints/encoder_glove')
-            decoder_checkpoint = torch.load('./checkpoints/decover_glove')
-        else:
-            print('Pre-Trained Baseline Model')
-            encoder_checkpoint = torch.load('./checkpoints/encoder_baseline')
-            decoder_checkpoint = torch.load('./checkpoints/decoder_baseline')
-    else:
-        if bert_model:
-            print('Pre-Trained BERT Model')
-            encoder_checkpoint = torch.load('./checkpoints/encoder_bert', map_location='cpu')
-            decoder_checkpoint = torch.load('./checkpoints/decoder_bert', map_location='cpu')
-        elif glove_model:
-            print('Pre-Trained GloVe Model')
-            encoder_checkpoint = torch.load('./checkpoints/encoder_glove', map_location='cpu')
-            decoder_checkpoint = torch.load('./checkpoints/decoder_glove', map_location='cpu')
-        else:
-            print('Pre-Trained Baseline Model')
-            encoder_checkpoint = torch.load('./checkpoints/encoder_baseline', map_location='cpu')
-            decoder_checkpoint = torch.load('./checkpoints/decoder_baseline', map_location='cpu')
-
-    encoder.load_state_dict(encoder_checkpoint['model_state_dict'])
-    decoder_optimizer = torch.optim.Adam(params=decoder.parameters(), lr=decoder_lr)
-    decoder.load_state_dict(decoder_checkpoint['model_state_dict'])
-    decoder_optimizer.load_state_dict(decoder_checkpoint['optimizer_state_dict'])
-
-else:
-    encoder = Encoder().to(device)
-    decoder = Decoder(vocab_size=len(vocab), use_glove=glove_model, use_bert=bert_model).to(device)
-    decoder_optimizer = torch.optim.Adam(params=decoder.parameters(), lr=decoder_lr)
-
 
 ###############
 # Train model
 ###############
 
-def train():
+def train(encoder, decoder, decoder_optimizer, criterion, train_loader):
     print("Started training...")
-    for epoch in tqdm(range(num_epochs)):
+    for epoch in tqdm(range(cfg.NUM_EPOCHS)):
         decoder.train()
         encoder.train()
 
@@ -349,7 +269,7 @@ def train():
             for group in decoder_optimizer.param_groups:
                 for param in group['params']:
                     if param.grad is not None:
-                        param.grad.data.clamp_(-grad_clip, grad_clip)
+                        param.grad.data.clamp_(-cfg.GRAD_CLIP, cfg.GRAD_CLIP)
 
             decoder_optimizer.step()
 
@@ -454,7 +374,7 @@ def print_sample(hypotheses, references, test_references, imgs, alphas, k, show_
         plt.show()
 
 
-def validate():
+def validate(encoder, decoder, criterion, val_loader):
     references = []
     test_references = []
     hypotheses = []
@@ -517,12 +437,109 @@ def validate():
     print_sample(hypotheses, references, test_references, all_imgs, all_alphas, 1, False, losses)
 
 
-######################
-# Run training/validation
-######################
+#############
+# Init model
+#############
+def init_model(device, vocab):
 
-if train_model:
-    train()
+    if cfg.FROM_CHECKPOINT:
+        encoder = Encoder().to(device)
+        decoder = Decoder(vocab_size=len(vocab), use_glove=cfg.GLOVE_MODEL, use_bert=cfg.BERT_MODEL).to(device)
 
-if valid_model:
-    validate()
+        if torch.cuda.is_available():
+            if cfg.BERT_MODEL:
+                print('Pre-Trained BERT Model')
+                encoder_checkpoint = torch.load('./checkpoints/encoder_bert')
+                decoder_checkpoint = torch.load('./checkpoints/decoder_bert')
+            elif cfg.GLOVE_MODEL:
+                print('Pre-Trained GloVe Model')
+                encoder_checkpoint = torch.load('./checkpoints/encoder_glove')
+                decoder_checkpoint = torch.load('./checkpoints/decover_glove')
+            else:
+                print('Pre-Trained Baseline Model')
+                encoder_checkpoint = torch.load('./checkpoints/encoder_baseline')
+                decoder_checkpoint = torch.load('./checkpoints/decoder_baseline')
+        else:
+            if cfg.BERT_MODEL:
+                print('Pre-Trained BERT Model')
+                encoder_checkpoint = torch.load('./checkpoints/encoder_bert', map_location='cpu')
+                decoder_checkpoint = torch.load('./checkpoints/decoder_bert', map_location='cpu')
+            elif cfg.GLOVE_MODEL:
+                print('Pre-Trained GloVe Model')
+                encoder_checkpoint = torch.load('./checkpoints/encoder_glove', map_location='cpu')
+                decoder_checkpoint = torch.load('./checkpoints/decoder_glove', map_location='cpu')
+            else:
+                print('Pre-Trained Baseline Model')
+                encoder_checkpoint = torch.load('./checkpoints/encoder_baseline', map_location='cpu')
+                decoder_checkpoint = torch.load('./checkpoints/decoder_baseline', map_location='cpu')
+
+        encoder.load_state_dict(encoder_checkpoint['model_state_dict'])
+        decoder_optimizer = torch.optim.Adam(params=decoder.parameters(), lr=cfg.DECODER_LR)
+        decoder.load_state_dict(decoder_checkpoint['model_state_dict'])
+        decoder_optimizer.load_state_dict(decoder_checkpoint['optimizer_state_dict'])
+
+    else:
+        encoder = Encoder().to(device)
+        decoder = Decoder(vocab_size=len(vocab), use_glove=cfg.GLOVE_MODEL, use_bert=cfg.BERT_MODEL).to(device)
+        decoder_optimizer = torch.optim.Adam(params=decoder.parameters(), lr=cfg.DECODER_LR)
+
+    return encoder, decoder, decoder_optimizer
+
+
+if __name__ == '__main__':
+    args = parse_args()
+    # Get file and set config
+    if args.cfg_file is not None:
+        cfg_from_file(args.cfg_file)
+
+    if args.data_dir != '':
+        cfg.DATA_DIR = args.data_dir
+    print('Using config:')
+    pprint.pprint(cfg)
+
+    # Activate the logger to have more information on what's happening under the hood
+    import logging
+    logging.basicConfig(level=logging.INFO)
+
+    # Device configuration
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+    # Load pretrained model tokenizer (vocabulary)
+    tokenizer = AlbertTokenizer.from_pretrained('albert-base-v2')
+
+    # Load pre-trained model (weights)
+    model = AlbertModel.from_pretrained('albert-base-v2').to(device)
+    model.eval()
+
+    # Load GloVe
+    glove_vectors = pickle.load(open('glove.6B/glove_words.pkl', 'rb'))
+    glove_vectors = torch.tensor(glove_vectors)
+
+
+    # vocab indices
+    PAD = 0
+    START = 1
+    END = 2
+    UNK = 3
+
+    # Load vocabulary
+    with open('../data/vocab.pkl', 'rb') as f:
+        vocab = pickle.load(f)
+
+    # load data
+    train_loader = get_loader('train', vocab, cfg.BATCH_SIZE)
+    val_loader = get_loader('val', vocab, cfg.BATCH_SIZE)
+
+    criterion = nn.CrossEntropyLoss().to(device)
+    encoder, decoder, decoder_optimizer = init_model(device, vocab)
+
+    ######################
+    # Run training/validation
+    ######################
+
+    if cfg.TRAIN_MODEL:
+        train(encoder=encoder, decoder=decoder, decoder_optimizer=decoder_optimizer,
+              criterion=criterion, train_loader=train_loader)
+
+    if cfg.VALID_MODEL:
+        validate(encoder=encoder, decoder=decoder, criterion=criterion, val_loader=val_loader)
