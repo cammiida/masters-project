@@ -39,6 +39,9 @@ from data_loader import get_loader
 #dir_path = (os.path.abspath(os.path.join(os.path.realpath(__file__), './.')))
 #sys.path.append(dir_path)
 
+# Device configuration
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Train a STREAM network')
@@ -141,7 +144,7 @@ class Decoder(nn.Module):
         encoder_out = encoder_out.view(batch_size, -1, encoder_dim)
         num_pixels = encoder_out.size(1)
 
-        # load bert or regular embeddings
+        # load albert or regular embeddings
         if not self.use_albert:
             embeddings = self.embedding(encoded_captions)
         elif self.use_albert:
@@ -164,9 +167,9 @@ class Decoder(nn.Module):
                     encoded_layers, _ = model(tokens_tensor)
 
                 # TODO: Figure out why is wasn't "encoded_layers[11].squeeze(0)"
+                # Maybe the model used previously had 12 layers, and so only the last layer was used..
+                # Now, remove batch axis
                 albert_embedding = encoded_layers.squeeze(0)
-                print('tokens_tensor.size(): ', tokens_tensor.size())
-                print('albert_embedding.size(): ', albert_embedding.size())
 
                 split_cap = cap.split()
                 tokens_embedding = []
@@ -180,19 +183,22 @@ class Decoder(nn.Module):
                         piece_embedding = albert_embedding[i+j]
 
                         # full token
-                        if token == full_token and curr_token == '':
-                            tokens_embedding.append(piece_embedding)
-                            j += 1
-                            break
+                        if token.startswith('_') or token.startswith('<') or token.startswith('['):
+
+                            if token.replace('_', '') == full_token and curr_token == '':
+                                tokens_embedding.append(piece_embedding)
+                                j += 1
+                                break
+
                         else: # partial token
                             x += 1
 
                             if curr_token == '':
                                 tokens_embedding.append(piece_embedding)
-                                curr_token += token.replace('#', '')
+                                curr_token += token
                             else:
                                 tokens_embedding[-1] = torch.add(tokens_embedding[-1], piece_embedding)
-                                curr_token += token.replace('#', '')
+                                curr_token += token
 
                                 if curr_token == full_token:
                                     j += x
@@ -301,7 +307,7 @@ def train(encoder, decoder, decoder_optimizer, criterion, train_loader):
                     'epoch': epoch,
                     'model_state_dict': encoder.state_dict(),
                     'loss': loss,
-                }, './checkpoints/encode_mid')
+                }, './checkpoints/encoder_mid')
 
                 print('model saved')
 
@@ -444,7 +450,7 @@ def validate(encoder, decoder, criterion, val_loader):
 #############
 # Init model
 #############
-def init_model(device, vocab):
+def init_model(vocab):
 
     if cfg.FROM_CHECKPOINT:
         encoder = Encoder().to(device)
@@ -452,30 +458,30 @@ def init_model(device, vocab):
 
         if torch.cuda.is_available():
             if cfg.ALBERT_MODEL:
-                print('Pre-Trained BERT Model')
-                encoder_checkpoint = torch.load('./checkpoints/encoder_bert')
-                decoder_checkpoint = torch.load('./checkpoints/decoder_bert')
+                print('Pre-Trained ALBERT Model')
+                encoder_checkpoint = torch.load('checkpoints/encoder_albert')
+                decoder_checkpoint = torch.load('checkpoints/decoder_albert')
             elif cfg.GLOVE_MODEL:
                 print('Pre-Trained GloVe Model')
-                encoder_checkpoint = torch.load('./checkpoints/encoder_glove')
-                decoder_checkpoint = torch.load('./checkpoints/decover_glove')
+                encoder_checkpoint = torch.load('checkpoints/encoder_glove')
+                decoder_checkpoint = torch.load('checkpoints/decoder_glove')
             else:
                 print('Pre-Trained Baseline Model')
-                encoder_checkpoint = torch.load('./checkpoints/encoder_baseline')
-                decoder_checkpoint = torch.load('./checkpoints/decoder_baseline')
+                encoder_checkpoint = torch.load('checkpoints/encoder_baseline')
+                decoder_checkpoint = torch.load('checkpoints/decoder_baseline')
         else:
             if cfg.ALBERT_MODEL:
-                print('Pre-Trained BERT Model')
-                encoder_checkpoint = torch.load('./checkpoints/encoder_bert', map_location='cpu')
-                decoder_checkpoint = torch.load('./checkpoints/decoder_bert', map_location='cpu')
+                print('Pre-Trained ALBERT Model')
+                encoder_checkpoint = torch.load('checkpoints/encoder_albert', map_location='cpu')
+                decoder_checkpoint = torch.load('checkpoints/decoder_albert', map_location='cpu')
             elif cfg.GLOVE_MODEL:
                 print('Pre-Trained GloVe Model')
-                encoder_checkpoint = torch.load('./checkpoints/encoder_glove', map_location='cpu')
-                decoder_checkpoint = torch.load('./checkpoints/decoder_glove', map_location='cpu')
+                encoder_checkpoint = torch.load('checkpoints/encoder_glove', map_location='cpu')
+                decoder_checkpoint = torch.load('checkpoints/decoder_glove', map_location='cpu')
             else:
                 print('Pre-Trained Baseline Model')
-                encoder_checkpoint = torch.load('./checkpoints/encoder_baseline', map_location='cpu')
-                decoder_checkpoint = torch.load('./checkpoints/decoder_baseline', map_location='cpu')
+                encoder_checkpoint = torch.load('checkpoints/encoder_baseline', map_location='cpu')
+                decoder_checkpoint = torch.load('checkpoints/decoder_baseline', map_location='cpu')
 
         encoder.load_state_dict(encoder_checkpoint['model_state_dict'])
         decoder_optimizer = torch.optim.Adam(params=decoder.parameters(), lr=cfg.DECODER_LR)
@@ -505,9 +511,6 @@ if __name__ == '__main__':
     import logging
     logging.basicConfig(level=logging.INFO)
 
-    # Device configuration
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
     # Load pretrained model tokenizer (vocabulary)
     tokenizer = AlbertTokenizer.from_pretrained('albert-base-v2')
 
@@ -535,7 +538,7 @@ if __name__ == '__main__':
     val_loader = get_loader('val', vocab, cfg.BATCH_SIZE)
 
     crit = nn.CrossEntropyLoss().to(device)
-    enc, dec, dec_optim = init_model(device, vocab)
+    enc, dec, dec_optim = init_model(vocab)
 
     ######################
     # Run training/validation
@@ -546,4 +549,6 @@ if __name__ == '__main__':
               criterion=crit, train_loader=train_loader)
 
     if cfg.VALID_MODEL:
-        validate(encoder=enc, decoder=dec, criterion=crit, val_loader=val_loader)
+        # Don't caluclate gradients for validation
+        with torch.no_grad():
+            validate(encoder=enc, decoder=dec, criterion=crit, val_loader=val_loader)
