@@ -29,6 +29,12 @@ __C.FROM_CHECKPOINT = False
 __C.TRAIN_MODEL = False
 __C.VALID_MODEL = False
 
+# Vocab indices
+__C.VOCAB.PAD = 0
+__C.VOCAB.START = 1
+__C.VOCAB.END = 2
+__C.VOCAB.UNK = 3
+
 
 def _merge_a_into_b(a, b):
     """Merge config dictionary a into config dictionary b, clobbering the

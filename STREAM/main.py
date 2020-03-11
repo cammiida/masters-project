@@ -99,12 +99,19 @@ class Decoder(nn.Module):
             self.embed_dim = 300
         elif use_albert:
             self.embed_dim = 768
+
+            # Load pretrained model tokenizer (vocabulary)
+            self.tokenizer = AlbertTokenizer.from_pretrained('albert-base-v2')
+
+            # Load pre-trained model (weights)
+            self.model = AlbertModel.from_pretrained('albert-base-v2').to(device)
+            self.model.eval()
         else:
             self.embed_dim = 512
 
         self.decoder_dim = 512
         self.vocab_size = vocab_size
-        self.dropout = 0.5
+        self.dropout_rate = 0.5
 
         # soft attention
         self.enc_att = nn.Linear(2048, 512)
@@ -114,7 +121,7 @@ class Decoder(nn.Module):
         self.softmax = nn.Softmax(dim=1)
 
         # decoder layers
-        self.dropout = nn.Dropout(p=self.dropout)
+        self.dropout = nn.Dropout(self.dropout_rate)
         self.decode_step = nn.LSTMCell(self.embed_dim + self.encoder_dim, self.decoder_dim, bias=True)
         self.h_lin = nn.Linear(self.encoder_dim, self.decoder_dim)
         self.c_lin = nn.Linear(self.encoder_dim, self.decoder_dim)
@@ -128,6 +135,9 @@ class Decoder(nn.Module):
 
             # load Glove embeddings
             if use_glove:
+                glove_vectors = pickle.load(open('../data/glove.6B/glove_words.pkl', 'rb'))
+                glove_vectors = torch.tensor(glove_vectors)
+
                 self.embedding.weight = nn.Parameter(glove_vectors)
 
             # always fine-tune embeddings (even with GloVe)
@@ -144,20 +154,23 @@ class Decoder(nn.Module):
         encoder_out = encoder_out.view(batch_size, -1, encoder_dim)
         num_pixels = encoder_out.size(1)
 
+        embeddings = []
         # load albert or regular embeddings
         if not self.use_albert:
             embeddings = self.embedding(encoded_captions)
         elif self.use_albert:
-            embeddings = []
+            tokenizer = self.tokenizer
+            model = self.model
+
             for cap_idx in encoded_captions:
                 # padd caption to correct size
                 while len(cap_idx) < max_dec_len:
-                    cap_idx.append(PAD)
+                    cap_idx.append(cfg.VOCAB.PAD)
 
                 cap = ' '.join([vocab.idx2word[word_idx.item()] for word_idx in cap_idx])
                 cap = u'[CLS] '+cap
 
-                print('cap: ', cap)
+
 
                 tokenized_cap = tokenizer.tokenize(cap)
                 indexed_tokens = tokenizer.convert_tokens_to_ids(tokenized_cap)
@@ -391,6 +404,7 @@ def validate(encoder, decoder, criterion, val_loader):
     all_imgs = []
     all_alphas = []
 
+
     print("Started validation...")
     decoder.eval()
     encoder.eval()
@@ -423,7 +437,7 @@ def validate(encoder, decoder, criterion, val_loader):
         # References
         for j in range(targets.shape[0]):
             img_caps = targets[j].tolist()  # validation dataset only has 1 unique caption per img
-            clean_cap = [w for w in img_caps if w not in [PAD, START, END]]  # remove pad, start, and end
+            clean_cap = [w for w in img_caps if w not in [cfg.VOCAB.PAD, cfg.VOCAB.START, cfg.VOCAB.END]]  # remove pad, start, and end
             img_captions = list(map(lambda c: clean_cap, img_caps))
             test_references.append(clean_cap)
             references.append(img_captions)
@@ -434,7 +448,7 @@ def validate(encoder, decoder, criterion, val_loader):
         temp_preds = list()
         for j, p in enumerate(preds):
             pred = p[:decode_lengths[j]]
-            pred = [w for w in pred if w not in [PAD, START, END]]
+            pred = [w for w in pred if w not in [cfg.VOCAB.PAD, cfg.VOCAB.START, cfg.VOCAB.END]]
             temp_preds.append(pred)  # remove pads, start, and end
         preds = temp_preds
         hypotheses.extend(preds)
@@ -450,11 +464,11 @@ def validate(encoder, decoder, criterion, val_loader):
 #############
 # Init model
 #############
-def init_model(vocab):
+def init_model(vocabulary):
 
     if cfg.FROM_CHECKPOINT:
         encoder = Encoder().to(device)
-        decoder = Decoder(vocab_size=len(vocab), use_glove=cfg.GLOVE_MODEL, use_albert=cfg.ALBERT_MODEL).to(device)
+        decoder = Decoder(vocab_size=len(vocabulary), use_glove=cfg.GLOVE_MODEL, use_albert=cfg.ALBERT_MODEL).to(device)
 
         if torch.cuda.is_available():
             if cfg.ALBERT_MODEL:
@@ -480,7 +494,7 @@ def init_model(vocab):
                 decoder_checkpoint = torch.load('checkpoints/decoder_glove', map_location='cpu')
             else:
                 print('Pre-Trained Baseline Model')
-                encoder_checkpoint = torch.load('checkpoints/encoder_baseline', map_location='cpu')
+                encoder_checkpoint = torch.load('checkpoints/encoder_fbaseline', map_location='cpu')
                 decoder_checkpoint = torch.load('checkpoints/decoder_baseline', map_location='cpu')
 
         encoder.load_state_dict(encoder_checkpoint['model_state_dict'])
@@ -490,7 +504,7 @@ def init_model(vocab):
 
     else:
         encoder = Encoder().to(device)
-        decoder = Decoder(vocab_size=len(vocab), use_glove=cfg.GLOVE_MODEL, use_albert=cfg.ALBERT_MODEL).to(device)
+        decoder = Decoder(vocab_size=len(vocabulary), use_glove=cfg.GLOVE_MODEL, use_albert=cfg.ALBERT_MODEL).to(device)
         decoder_optimizer = torch.optim.Adam(params=decoder.parameters(), lr=cfg.DECODER_LR)
 
     return encoder, decoder, decoder_optimizer
@@ -511,31 +525,11 @@ if __name__ == '__main__':
     import logging
     logging.basicConfig(level=logging.INFO)
 
-    # Load pretrained model tokenizer (vocabulary)
-    tokenizer = AlbertTokenizer.from_pretrained('albert-base-v2')
 
-    # Load pre-trained model (weights)
-    model = AlbertModel.from_pretrained('albert-base-v2').to(device)
-    model.eval()
-
-    # Load GloVe
-    glove_vectors = pickle.load(open('../data/glove.6B/glove_words.pkl', 'rb'))
-    glove_vectors = torch.tensor(glove_vectors)
-
-
-    # vocab indices
-    PAD = 0
-    START = 1
-    END = 2
-    UNK = 3
 
     # Load vocabulary
     with open('../data/vocab.pkl', 'rb') as f:
         vocab = pickle.load(f)
-
-    # load data
-    train_loader = get_loader('train', vocab, cfg.BATCH_SIZE)
-    val_loader = get_loader('val', vocab, cfg.BATCH_SIZE)
 
     crit = nn.CrossEntropyLoss().to(device)
     enc, dec, dec_optim = init_model(vocab)
@@ -545,10 +539,14 @@ if __name__ == '__main__':
     ######################
 
     if cfg.TRAIN_MODEL:
+        # Load data
+        train_loader = get_loader('train', vocab, cfg.BATCH_SIZE)
         train(encoder=enc, decoder=dec, decoder_optimizer=dec_optim,
               criterion=crit, train_loader=train_loader)
 
     if cfg.VALID_MODEL:
+        # Load data
+        val_loader = get_loader('val', vocab, cfg.BATCH_SIZE)
         # Don't caluclate gradients for validation
         with torch.no_grad():
             validate(encoder=enc, decoder=dec, criterion=crit, val_loader=val_loader)
