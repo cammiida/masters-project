@@ -9,7 +9,17 @@ import pickle
 import numpy as np
 import bcolz
 import os
+import argparse
+from cfg.config import cfg, cfg_from_file
 from processData import Vocabulary
+import pprint
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(description='Create GloVe embeddings')
+    parser.add_argument('--data_size', dest='data_size', type=str, default='')
+    parser.add_argument('--root_dir', dest='root_dir', type=str, default='')
+    return parser.parse_args()
 
 
 def create_glove_files(root_dir):
@@ -74,10 +84,19 @@ def generate_weight_matrix(root_dir, glove_dir, vectors, words, word2idx):
 
 
 if __name__ == '__main__':
-    # TODO: Get paths from config
-    data_dir = '../data/'
-    glove_dir = os.path.join(data_dir, 'glove.6B/')
+    args = parse_args()
+
+    if args.root_dir != '':
+        cfg.ROOT_DIR = args.ROOT_DIR
+    if args.data_size != '':
+        cfg.DATASET_SIZE = args.data_size
+
+    cfg.DATA_DIR = os.path.join(cfg.ROOT_DIR, cfg.DATASET_SIZE)
+    print('Using config:')
+    pprint.pprint(cfg)
+
+    glove_dir = os.path.join(cfg.DATA_DIR, 'glove.6B/')
 
     create_glove_files(glove_dir)
     vectors, words, word2idx = load_glove_files(glove_dir)
-    generate_weight_matrix(data_dir, glove_dir, vectors, words, word2idx)
+    generate_weight_matrix(cfg.DATA_DIR, glove_dir, vectors, words, word2idx)

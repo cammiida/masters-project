@@ -35,9 +35,6 @@ from transformers import AlbertTokenizer, AlbertModel
 from processData import Vocabulary
 from data_loader import get_loader
 
-# TODO: Need this?
-#dir_path = (os.path.abspath(os.path.join(os.path.realpath(__file__), './.')))
-#sys.path.append(dir_path)
 
 # Device configuration
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -48,7 +45,8 @@ def parse_args():
     parser.add_argument('--cfg', dest='cfg_file',
                         help='optional config file',
                         default=None, type=str)
-    parser.add_argument('--dara_dir', dest='data_dir', type=str, default='')
+    parser.add_argument('--data_size', dest='data_size', type=str, default='')
+    parser.add_argument('--root_dir', dest='root_dir', type=str, default='')
     # TODO: Use this
     parser.add_argument('--gpu', dest='gpu_id', type=int, default=-1)
     return parser.parse_args()
@@ -135,7 +133,7 @@ class Decoder(nn.Module):
 
             # load Glove embeddings
             if use_glove:
-                glove_vectors = pickle.load(open('../data/glove.6B/glove_words.pkl', 'rb'))
+                glove_vectors = pickle.load(open(os.path.join(cfg.DATA_DIR, 'glove.6B/glove_words.pkl'), 'rb'))
                 glove_vectors = torch.tensor(glove_vectors)
 
                 self.embedding.weight = nn.Parameter(glove_vectors)
@@ -516,8 +514,12 @@ if __name__ == '__main__':
     if args.cfg_file is not None:
         cfg_from_file(args.cfg_file)
 
-    if args.data_dir != '':
-        cfg.DATA_DIR = args.data_dir
+    if args.root_dir != '':
+        cfg.ROOT_DIR = args.ROOT_DIR
+    if args.data_size != '':
+        cfg.DATASET_SIZE = args.data_size
+
+    cfg.DATA_DIR = os.path.join(cfg.ROOT_DIR, cfg.DATASET_SIZE)
     print('Using config:')
     pprint.pprint(cfg)
 
@@ -528,7 +530,7 @@ if __name__ == '__main__':
 
 
     # Load vocabulary
-    with open('../data/vocab.pkl', 'rb') as f:
+    with open(os.path.join(cfg.DATA_DIR, 'vocab.pkl'), 'rb') as f:
         vocab = pickle.load(f)
 
     crit = nn.CrossEntropyLoss().to(device)
@@ -540,7 +542,7 @@ if __name__ == '__main__':
 
     if cfg.TRAIN_MODEL:
         # Load data
-        train_loader = get_loader('train', vocab, cfg.BATCH_SIZE)
+        train_loader = get_loader('train', vocab, cfg.BATCH_SIZE, root_dir=cfg.DATA_DIR)
         train(encoder=enc, decoder=dec, decoder_optimizer=dec_optim,
               criterion=crit, train_loader=train_loader)
 
@@ -549,4 +551,4 @@ if __name__ == '__main__':
         val_loader = get_loader('val', vocab, cfg.BATCH_SIZE)
         # Don't caluclate gradients for validation
         with torch.no_grad():
-            validate(encoder=enc, decoder=dec, criterion=crit, val_loader=val_loader)
+            validate(encoder=enc, decoder=dec, criterion=crit, val_loader=val_loader, root_dir=cfg.DATA_DIR)

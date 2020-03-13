@@ -23,13 +23,13 @@ def get_filenames_sample(filenames, percentile):
     return sample
 
 
-def create_pickle(list, dir, filename):
+def create_pickle(lst, directory, filename):
     # TODO: Check that file doesn't exist
-    print("%s is directory: %s" % (dir, os.path.isdir(dir)))
-    if not os.path.isdir(dir):
-        create_dir(dir)
-    with open(os.path.join(dir, filename), 'wb') as f:
-        pickle.dump(list, f)
+    print("%s is directory: %s" % (directory, os.path.isdir(directory)))
+    if not os.path.isdir(directory):
+        create_dir(directory)
+    with open(os.path.join(directory, filename), 'wb') as f:
+        pickle.dump(lst, f)
 
 
 
@@ -54,18 +54,26 @@ def get_sample_filenames(data_dir, percentile):
 
 
 def copy_files(source, destination, filenames, extension):
+    print("Copying files from %s to %s" % (source, destination))
     files = os.listdir(source)
-    for f in files:
+    percentage = 0
+    for i, f in enumerate(files):
         if f.replace(extension, '') in filenames:
             src = os.path.join(source, f)
             dst = os.path.join(destination, f)
 
-            try:
-                copyfile(src, dst)
-            except OSError:
-                print("Could not copy file %s to %s" % (src, dst))
-            else:
+            copyfile(src, dst)
+            if os.path.isfile(dst):
                 print("Copied file %s to %s" % (src, dst))
+
+                if percentage == 0:
+                    print("%s/100" % str(percentage))
+                if math.floor((i / len(files) * 100)) > percentage:
+                    percentage = math.floor((i / len(files) * 100))
+                    print("%s/100" % str(percentage))
+            else:
+                raise Exception("Could not copy file %s to %s" % (src, dst))
+
 
 
 def create_sample(source, destination):
@@ -178,10 +186,24 @@ if __name__ == '__main__':
 
     train_filenames, test_filenames = get_sample_filenames(big_root, 0.05)
 
-
-
+    print("About to copy files...")
+    '''
+    copy_files(source=os.path.join(big_root, 'train2014'), destination=os.path.join(small_root, 'train2014'),
+               extension='.jpg', filenames=train_filenames)
 
     '''
+
+    copy_files(source=os.path.join(big_root, 'val2014'), destination=os.path.join(small_root, 'val2014'),
+               extension='.jpg', filenames=test_filenames)
+
+    '''
+    copy_files(source=os.path.join(big_root, 'train2014_resized'), destination=os.path.join(small_root, 'train2014_resized'),
+               extension='.jpg', filenames=train_filenames)
+
+    copy_files(source=os.path.join(big_root, 'val2014_resized'),
+               destination=os.path.join(small_root, 'val2014_resized'),
+               extension='.jpg', filenames=test_filenames)
+
     captions = load_pickle('../data/captions.pickle')
     for v in captions[0]:
         print(v)

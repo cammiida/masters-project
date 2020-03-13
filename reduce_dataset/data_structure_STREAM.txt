@@ -37,7 +37,7 @@ data/
             val2014_resized/
                 COCO_val2014_0012324**.txt
                 ...
-            vocab.pickle (generated with processData)
+            vocab.pkl (generated with processData)
         small/
             --"--
 

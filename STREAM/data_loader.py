@@ -64,15 +64,15 @@ def collate_fn(data):
 
     return images, targets, lengths
 
-def get_loader(method, vocab, batch_size):
+def get_loader(method, vocab, batch_size, root_dir):
 
     # train/validation paths
     if method == 'train':
-        root = '../data/train2014_resized'
-        json = '../data/annotations/captions_train2014.json'
+        root = os.path.join(root_dir, 'train2014_resized')
+        json = os.path.join(root_dir, 'annotations/captions_train2014.json')
     elif method == 'val':
-        root = '../data/val2014_resized'
-        json = '../data/annotations/captions_val2014.json'
+        root = os.path.join(root_dir, 'val2014_resized')
+        json = os.path.join(root_dir, 'annotations/captions_val2014.json')
 
     # rasnet tranformation/normalization
     transform = transforms.Compose([
@@ -92,8 +92,6 @@ def get_loader(method, vocab, batch_size):
                                               collate_fn=collate_fn)
 
     return data_loader
-
-
 
 
 

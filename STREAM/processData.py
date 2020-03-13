@@ -7,12 +7,24 @@ Link: https://github.com/sgrvinod/a-PyTorch-Tutorial-to-Image-Captioning
 This script processes the COCO dataset
 '''
 
+from cfg.config import cfg
+
 import os
 import pickle
 from collections import Counter
 import nltk
 from PIL import Image
 from pycocotools.coco import COCO
+import argparse
+import pprint
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(description='Train a STREAM network')
+    parser.add_argument('--data_size', dest='data_size', type=str, default='')
+    parser.add_argument('--root_dir', dest='root_dir', type=str, default='')
+    return parser.parse_args()
+
 
 class Vocabulary(object):
     def __init__(self):
@@ -77,12 +89,12 @@ def main(caption_path,vocab_path,threshold):
     with open(vocab_path, 'wb') as f:
         pickle.dump(vocab, f)
 
-    # print("resizing images...")
+    print("resizing images...")
     splits = ['val','train']
 
     for split in splits:
-        folder = '../data/%s2014' %split
-        resized_folder = '../data/%s2014_resized/' %split
+        folder = os.path.join(cfg.DATA_DIR, '%s2014' % split)
+        resized_folder = os.path.join(cfg.DATA_DIR, '%s2014_resized/' % split)
         if not os.path.exists(resized_folder):
             os.makedirs(resized_folder)
         image_files = os.listdir(folder)
@@ -93,12 +105,28 @@ def main(caption_path,vocab_path,threshold):
                     image = resize_image(image)
                     image.save(os.path.join(resized_folder, image_file), image.format)
 
+            if i % 1000 == 0 or i == num_images:
+                print("copied %s/%s images" % (str(i),str(num_images)))
+
+        print("copied %s images in %s folder..." % (str(num_images), split))
+
     print("done resizing images...")
 
 
 if __name__ == '__main__':
-    caption_path = '../data/annotations/captions_train2014.json'
-    vocab_path = '../data/vocab.pkl'
+    args = parse_args()
+
+    if args.root_dir != '':
+        cfg.ROOT_DIR = args.ROOT_DIR
+    if args.data_size != '':
+        cfg.DATASET_SIZE = args.data_size
+
+    cfg.DATA_DIR = os.path.join(cfg.ROOT_DIR, cfg.DATASET_SIZE)
+    print('Using config:')
+    pprint.pprint(cfg)
+
+    caption_path = os.path.join(cfg.DATA_DIR, 'annotations/captions_train2014.json')
+    vocab_path = os.path.join(cfg.DATA_DIR, 'vocab.pkl')
     threshold = 5
 
-    main(caption_path,vocab_path,threshold)
+    main(caption_path, vocab_path, threshold)
