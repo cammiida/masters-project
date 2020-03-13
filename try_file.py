@@ -115,12 +115,24 @@ def text_encoded_sequence(text_a, text_b):
 
     return albert_tokenizer.decode(encoded_sequence)
 
+
 if __name__ == '__main__':
-    text_a = "Who was Jim Henson ?"
+    text_a = "[CLS] Who was Jim Henson ?"
+    text_a = "Penguins are flightless birds"
     text_b = "Jim Henson was a puppeteer"
+    text_c = "I like strawberries"
+
+    tokenized_text = albert_tokenizer.tokenize(text_c)
+    b_tokenized_text = bert_tokenizer.tokenize(text_c)
+    indexed_tokens = albert_tokenizer.convert_tokens_to_ids(tokenized_text)
+    tokens_tensor = torch.tensor([indexed_tokens])
+
+    print(b_tokenized_text)
+    print(tokenized_text)
+    print(tokens_tensor)
     # test_bert_tokenization("[CLS] Who was Jim Henson ? [SEP] Jim Henson was a puppeteer [SEP]")
     # encoded_layers = test_albert_embedding_squeeze(tokens_tensor, segments_tensors)
-    test_encode_plus(text_a, text_b)
+    #test_encode_plus(text_a, text_b)
     # text_encoded_sequence(text_a, text_b)
 
 
