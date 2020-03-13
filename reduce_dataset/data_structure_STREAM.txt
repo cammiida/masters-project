@@ -1,0 +1,45 @@
+For STREAM
+
+data/
+    coco/
+        big/
+            annotations/
+                captions_train2014.json
+                captions_val2014.json
+                instances_train2014.json
+                instances_val2014.json
+                person_keypoints_train2014.json
+                person_keypoints_val2014.json
+            glove.6B/ (necessary?)
+                6B.300.dat (generated with globe_embeds.py)
+                glove.6B.50d.txt
+                glove.6B.100d.txt
+                glove.6B.200d.txt
+                glove.6B.300d.txt
+            test/
+                filenames.pickle
+            text/
+                COCO_train2014_001_248***.txt
+                ...
+                COCO_val2014_001_2324**.txt
+                ...
+            train/
+                filenames.pickle
+            train2014/
+                COCO_train2014_001248***.txt
+                ...
+            val2014/
+                COCO_val2014_0012324**.txt
+                ...
+            train2014_resized/
+                COCO_train2014_001248***.txt
+                ...
+            val2014_resized/
+                COCO_val2014_0012324**.txt
+                ...
+            vocab.pickle (generated with processData)
+        small/
+            --"--
+
+
+

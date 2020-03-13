@@ -1,0 +1,26 @@
+FOR STEM
+
+data/
+    coco/
+        images/
+            train2014/
+                COCO_train2014_001248***.txt
+                ...
+            val2014/
+                COCO_val2014_0012324**.txt
+                ...
+        test/
+            filenames.pickle
+        text/
+            COCO_train2014_001_248***.txt
+            ...
+            COCO_val2014_001_2324**.txt
+            ...
+        train/
+            filenames.pickle
+        captions.pickle
+        example_captions.txt
+        example_filenames.txt
+        interpolate_captions.txt
+        readme.txt
+        train2014-text.zip
