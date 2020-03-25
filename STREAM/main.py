@@ -83,6 +83,7 @@ def train(encoder, decoder, decoder_optimizer, criterion, train_loader):
         losses = loss_obj()
         num_batches = len(train_loader)
 
+        # Loop through each batch
         for i, (imgs, caps, caplens) in enumerate(tqdm(train_loader)):
 
             imgs = encoder(imgs.to(device))
@@ -110,6 +111,8 @@ def train(encoder, decoder, decoder_optimizer, criterion, train_loader):
             decoder_optimizer.step()
 
             losses.update(loss.item(), sum(decode_lengths))
+
+            save_loss_graph(epoch, i, losses.get_losses())
 
             # save model each 100 batches
             if i % 5000 == 0 and i != 0:
@@ -152,13 +155,18 @@ def train(encoder, decoder, decoder_optimizer, criterion, train_loader):
 
         print('epoch checkpoint saved')
 
-    plt.plot(losses.get_losses(), [0,1])
+    print("Completed training...")
+
+def save_loss_graph(epoch_num, batch_num, x_values, y_values=None):
+    if y_values is None:
+        y_values = [0,1]
+    plt.plot(x_values, y_values)
     plt.xlabel("Epochs")
     plt.ylabel("Losses")
     timestamp = datetime.now().strftime('%y-%m-%dT%H:%M:%S')
-    plt.savefig('./checkpoints/losses/%s.png' % timestamp)
+    os.mkdir('./checkpoints/losses/%s' % timestamp)
+    plt.savefig('./checkpoints/losses/%s/epoch_%s_batch_%s' % (timestamp, epoch_num, batch_num))
 
-    print("Completed training...")
 
 
 #################
@@ -215,7 +223,7 @@ def print_sample(hypotheses, references, test_references, imgs, alphas, k, show_
 
     img = imgs[0][k]
     imageio.imwrite('img.jpg', img)
-
+    '''
     if show_att:
         image = Image.open('img.jpg')
         image = image.resize([img_dim, img_dim], Image.LANCZOS)
@@ -237,6 +245,7 @@ def print_sample(hypotheses, references, test_references, imgs, alphas, k, show_
         plt.imshow(img)
         plt.axis('off')
         plt.show()
+    '''
 
 
 def validate(encoder, decoder, criterion, val_loader):
