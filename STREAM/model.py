@@ -4,7 +4,7 @@ import torch.nn as nn
 import torchvision.models as models
 
 from cfg.config import cfg, cfg_from_file
-from transformers import AlbertTokenizer, AlbertModel
+from transformers import AlbertTokenizer, AlbertModel, BertTokenizer, BertModel
 
 # Device configuration
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -40,13 +40,15 @@ class Decoder(nn.Module):
         if use_glove:
             self.embed_dim = 300
         elif use_albert:
+            # TODO: Should this be 128 for Albert?
             self.embed_dim = 768
 
             # Load pretrained model tokenizer (vocabulary)
-            self.tokenizer = AlbertTokenizer.from_pretrained('albert-base-v2')
-
+            #self.tokenizer = AlbertTokenizer.from_pretrained('albert-base-v2')
+            self.tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
             # Load pre-trained model (weights)
-            self.model = AlbertModel.from_pretrained('albert-base-v2').to(device)
+            #self.model = AlbertModel.from_pretrained('albert-base-v2').to(device)
+            self.model = BertModel.from_pretrained('bert-base-uncased').to(device)
             self.model.eval()
         else:
             self.embed_dim = 512
@@ -113,13 +115,13 @@ class Decoder(nn.Module):
                 cap = u'[CLS] '+cap
 
 
-
                 tokenized_cap = tokenizer.tokenize(cap)
                 indexed_tokens = tokenizer.convert_tokens_to_ids(tokenized_cap)
                 tokens_tensor = torch.tensor([indexed_tokens]).to(device)
 
                 with torch.no_grad():
                     encoded_layers, _ = model(tokens_tensor)
+
 
                 # TODO: Figure out why is wasn't "encoded_layers[11].squeeze(0)"
                 # Maybe the model used previously had 12 layers, and so only the last layer was used..
@@ -130,6 +132,7 @@ class Decoder(nn.Module):
                 tokens_embedding = []
                 j = 0
 
+
                 for full_token in split_cap:
                     curr_token = ''
                     x = 0
@@ -137,6 +140,8 @@ class Decoder(nn.Module):
                         token = tokenized_cap[i+j]
                         piece_embedding = albert_embedding[i+j]
 
+                        '''
+                        # ALBERT
                         # full token
                         if token.startswith('_') or token.startswith('<') or token.startswith('['):
 
@@ -158,6 +163,28 @@ class Decoder(nn.Module):
                                 if curr_token == full_token:
                                     j += x
                                     break
+
+                        '''
+                        # BERT
+                        # full token
+                        if token == full_token and curr_token == '':
+                            tokens_embedding.append(piece_embedding)
+                            j += 1
+                            break
+                        else:  # partial token
+                            x += 1
+
+                            if curr_token == '':
+                                tokens_embedding.append(piece_embedding)
+                                curr_token += token.replace('#', '')
+                            else:
+                                tokens_embedding[-1] = torch.add(tokens_embedding[-1], piece_embedding)
+                                curr_token += token.replace('#', '')
+
+                                if curr_token == full_token:  # end of partial
+                                    j += x
+                                    break
+
 
                 cap_embedding = torch.stack(tokens_embedding)
                 embeddings.append(cap_embedding)

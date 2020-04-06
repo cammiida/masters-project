@@ -20,6 +20,8 @@ import os
 import sys
 
 import imageio
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import numpy as np
 import skimage.transform
@@ -60,11 +62,13 @@ class loss_obj(object):
         self.count = 0.
         self.losses = []
 
+    def add_to_loss_list(self, loss):
+        self.losses.append(loss)
+
     def update(self, val, n=1):
         self.sum += val * n
         self.count += n
         self.avg = self.sum / self.count
-        self.losses.append(val)
 
     def get_losses(self):
         return self.losses
@@ -75,8 +79,12 @@ class loss_obj(object):
 ###############
 
 def train(encoder, decoder, decoder_optimizer, criterion, train_loader):
+
+    # TODO: Add scheduler? (See torch.optim how to adjust learning rate)
     print("Started training...")
     for epoch in tqdm(range(cfg.NUM_EPOCHS)):
+
+        # Set the models in training mode
         decoder.train()
         encoder.train()
 
@@ -89,6 +97,7 @@ def train(encoder, decoder, decoder_optimizer, criterion, train_loader):
             imgs = encoder(imgs.to(device))
             caps = caps.to(device)
 
+            # Packing to optimize computations
             scores, caps_sorted, decode_lengths, alphas = decoder(imgs, caps, caplens)
             scores = pack_padded_sequence(scores, decode_lengths, batch_first=True)[0]
 
@@ -111,13 +120,17 @@ def train(encoder, decoder, decoder_optimizer, criterion, train_loader):
             decoder_optimizer.step()
 
             losses.update(loss.item(), sum(decode_lengths))
+            losses.add_to_loss_list(loss.item())
 
-            save_loss_graph(epoch, i, losses.get_losses())
 
+            # TODO: Set this to 100?
             # save model each 100 batches
-            if i % 5000 == 0 and i != 0:
+            if (i % 5000 == 0 and i != 0) or i == num_batches:
                 print('epoch ' + str(epoch + 1) + '/4 ,Batch ' + str(i) + '/' + str(num_batches) + ' loss:' + str(
                     losses.avg))
+
+                # save losses to graph
+                save_loss_graph(epoch + 1, i + 1, losses.get_losses())
 
                 # adjust learning rate (create condition for this)
                 for param_group in decoder_optimizer.param_groups:
@@ -157,45 +170,48 @@ def train(encoder, decoder, decoder_optimizer, criterion, train_loader):
 
     print("Completed training...")
 
-def save_loss_graph(epoch_num, batch_num, x_values, y_values=None):
-    if y_values is None:
-        y_values = [0,1]
+def save_loss_graph(epoch_num, batch_num, losses):
+    print("Epoch: ", epoch_num)
+    x_values = range(1, len(losses)+1)
+    y_values = losses
     plt.plot(x_values, y_values)
-    plt.xlabel("Epochs")
-    plt.ylabel("Losses")
-    timestamp = datetime.now().strftime('%y-%m-%dT%H:%M:%S')
-    os.mkdir('./checkpoints/losses/%s' % timestamp)
-    plt.savefig('./checkpoints/losses/%s/epoch_%s_batch_%s' % (timestamp, epoch_num, batch_num))
 
+    x_label = "Batch number in epoch %d" % epoch_num
+    plt.xlabel(x_label)
+    plt.ylabel("Losses")
+    date = datetime.now().strftime('%y-%m-%d')
+    if not os.path.isdir('./checkpoints/losses/%s' % date):
+        os.mkdir('./checkpoints/losses/%s' % date)
+    plt.savefig('./checkpoints/losses/%s/epoch_%s_batch_%s' % (date, epoch_num, batch_num))
 
 
 #################
 # Validate model
 #################
 
-# TODO: Finish
-def save_files(hypotheses, references, test_references, imgs, alphas, k, show_att, losses):
-    if not os.path.isdir:
-        os.mkdir('validation_results')
-    os.mkdir(str(datetime.now().strftime('%y-%m-%dT%H:%M:%S')))
+def write_results(hypotheses, references):
+    dirname = './checkpoints/results/'
+    if not os.path.isdir(dirname):
+        os.mkdir(dirname)
+    number = len(os.listdir(dirname))
+    date = str(datetime.now().strftime('%d-%m-%y'))
+    filepath = './checkpoints/results/%d_%s.txt' % (number, date)
+    file = open(filepath, 'w', encoding='utf8')
+    for i in range(len(hypotheses)):
+        hyp_sentence = []
+        for word_idx in hypotheses[i]:
+            hyp_sentence.append(vocab.idx2word[word_idx])
 
-    bleu_1 = corpus_bleu(references, hypotheses, weights=(1, 0, 0, 0))
-    bleu_2 = corpus_bleu(references, hypotheses, weights=(0, 1, 0, 0))
-    bleu_3 = corpus_bleu(references, hypotheses, weights=(0, 0, 1, 0))
-    bleu_4 = corpus_bleu(references, hypotheses, weights=(0, 0, 0, 1))
+        ref_sentence = []
+        for word_idx in references[i]:
+            ref_sentence.append(vocab.idx2word[word_idx])
 
-    print("Validation loss: " + str(losses.avg))
-    print("BLEU-1: " + str(bleu_1))
-    print("BLEU-2: " + str(bleu_2))
-    print("BLEU-3: " + str(bleu_3))
-    print("BLEU-4: " + str(bleu_4))
+        file.write("hypothesis: %s\n" % hyp_sentence)
+        file.write("reference: %s\n\n" % ref_sentence)
 
-    img_dim = 336
-
-    pass
+    file.close()
 
 
-# TODO: SAVE TO FILES INSTEAD
 def print_sample(hypotheses, references, test_references, imgs, alphas, k, show_att, losses):
     bleu_1 = corpus_bleu(references, hypotheses, weights=(1, 0, 0, 0))
     bleu_2 = corpus_bleu(references, hypotheses, weights=(0, 1, 0, 0))
@@ -208,6 +224,9 @@ def print_sample(hypotheses, references, test_references, imgs, alphas, k, show_
     print("BLEU-3: " + str(bleu_3))
     print("BLEU-4: " + str(bleu_4))
 
+    write_results(hypotheses, test_references)
+
+    '''
     img_dim = 336  # 14*24
 
     hyp_sentence = []
@@ -223,7 +242,6 @@ def print_sample(hypotheses, references, test_references, imgs, alphas, k, show_
 
     img = imgs[0][k]
     imageio.imwrite('img.jpg', img)
-    '''
     if show_att:
         image = Image.open('img.jpg')
         image = image.resize([img_dim, img_dim], Image.LANCZOS)
@@ -359,33 +377,10 @@ def init_model(vocabulary):
 
     return encoder, decoder, decoder_optimizer
 
-
-if __name__ == '__main__':
-    args = parse_args()
-    # Get file and set config
-    if args.cfg_file is not None:
-        cfg_from_file(args.cfg_file)
-
-    if args.root_dir != '':
-        cfg.ROOT_DIR = args.ROOT_DIR
-    if args.data_size != '':
-        cfg.DATASET_SIZE = args.data_size
-
-    cfg.DATA_DIR = os.path.join(cfg.ROOT_DIR, cfg.DATASET_SIZE)
-    print('Using config:')
-    pprint.pprint(cfg)
-
-    # Activate the logger to have more information on what's happening under the hood
-    import logging
-    logging.basicConfig(level=logging.INFO)
-
-
-    # Load vocabulary
-    with open(os.path.join(cfg.DATA_DIR, 'vocab.pkl'), 'rb') as f:
-        vocab = pickle.load(f)
-
+def main():
     crit = nn.CrossEntropyLoss().to(device)
     enc, dec, dec_optim = init_model(vocab)
+
 
     ######################
     # Run training/validation
@@ -403,4 +398,30 @@ if __name__ == '__main__':
         # Don't caluclate gradients for validation
         with torch.no_grad():
             validate(encoder=enc, decoder=dec, criterion=crit, val_loader=val_loader)
+
+
+if __name__ == '__main__':
+    args = parse_args()
+    # Get file and set config
+    if args.cfg_file is not None:
+        cfg_from_file(args.cfg_file)
+
+    if args.root_dir != '':
+        cfg.ROOT_DIR = args.ROOT_DIR
+    if args.data_size != '':
+        cfg.DATASET_SIZE = args.data_size
+
+    cfg.DATA_DIR = os.path.join(cfg.ROOT_DIR, cfg.DATASET_SIZE)
+    print('Using config:')
+    pprint.pprint(cfg)
+
+    # Load vocabulary
+    with open(os.path.join(cfg.DATA_DIR, 'vocab.pkl'), 'rb') as f:
+        vocab = pickle.load(f)
+
+    main()
+
+
+
+
 
