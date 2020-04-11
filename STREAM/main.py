@@ -35,7 +35,7 @@ from datetime import datetime
 
 from processData import Vocabulary
 from data_loader import get_loader
-from model import Encoder, Decoder
+from stream_model import Encoder, Decoder
 
 
 # Device configuration
