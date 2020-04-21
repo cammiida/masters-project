@@ -4,50 +4,58 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 
-from nltk.tokenize import RegexpTokenizer
-from collections import defaultdict
 from cfg.config import cfg
 
 import torch
-import torch.utils.data as data
+import torch.utils.data
 from torch.autograd import Variable
 import torchvision.transforms as transforms
 
 import os
-import sys
 import nltk
 import numpy as np
-import pandas as pd
 from PIL import Image
-import numpy.random as random
-import pickle
 from pycocotools.coco import COCO
 
+# TODO: Do we even need this since collate_fn is used?
+'''
 def prepare_data(data):
-    imgs, captions, captions_lens, class_ids, keys = data
-
+    print("prepare data")
+    #imgs, captions, captions_lens, class_ids, keys = data
+    imgs, captions, captions_lens = data
     # sort data by the length in a decreasing order
     sorted_cap_lens, sorted_cap_indices = \
         torch.sort(captions_lens, 0, True)
 
+    print("imgs: ", imgs)
+    print("sorted_cap_indices:", sorted_cap_indices)
+    print("prepare data, imgs size: ", imgs.size())
+    print("sorted_cap_indices size: ", sorted_cap_indices.size())
     real_imgs = []
     for i in range(len(imgs)):
         imgs[i] = imgs[i][sorted_cap_indices]
-        real_imgs.append(Variable(imgs[i]).to(cfg.DEVICE))
+        real_imgs.append(imgs[i]).to(cfg.DEVICE)
 
+    print("captions size before squeeze: ", captions.size())
     captions = captions[sorted_cap_indices].squeeze()
-    class_ids = class_ids[sorted_cap_indices].numpy()
+    print("captions size after squeeze: ", captions.size())
+    #class_ids = class_ids[sorted_cap_indices].numpy()
     # sent_indices = sent_indices[sorted_cap_indices]
-    keys = [keys[i] for i in sorted_cap_indices.numpy()]
+    #keys = [keys[i] for i in sorted_cap_indices.numpy()]
 
-    captions = Variable(captions).to(cfg.DEVICE)
-    sorted_cap_lens = Variable(sorted_cap_lens).to(cfg.DEVICE)
+    # Were Variables
+    captions = captions.to(cfg.DEVICE)
+    sorted_cap_lens = sorted_cap_lens.to(cfg.DEVICE)
 
-    return [real_imgs, captions, sorted_cap_lens, class_ids, keys]
+    return [real_imgs, captions, sorted_cap_lens] #, class_ids, keys]
+'''
 
 
 def get_imgs(img_path, imsize, bbox=None, transform=None, normalize=None):
     img = Image.open(img_path).convert('RGB')
+    img_arr = np.asarray(img)
+    img = Image.fromarray(img_arr)
+
     width, height = img.size
     if bbox is not None:
         r = int(np.maximum(bbox[2], bbox[3]) * 0.75)
@@ -58,6 +66,7 @@ def get_imgs(img_path, imsize, bbox=None, transform=None, normalize=None):
         x1 = np.maximum(0, center_x - r)
         x2 = np.minimum(width, center_x + r)
         img = img.crop([x1, y1, x2, y2])
+        img = transforms.ToPILImage()(img)
 
     if transform is not None:
         img = transform(img)
@@ -73,51 +82,29 @@ def get_imgs(img_path, imsize, bbox=None, transform=None, normalize=None):
                 re_img = img
             ret.append(normalize(re_img))
 
+    # ret contains an array with a single tensor inside.
+    # Extract tensor
+    ret = ret[-1]
     return ret
 
-'''
-class TextDataset(data.Dataset):
-    def __init__(self, data_dir, split='train',
-                 base_size=64, transform=None, target_transform=None):
-        self.transform = transform
-        self.norm = transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
-        ])
-        self.target_transform = target_transform
-        self.embeddings_num = cfg.TEXT.CAPTIONS_PER_IMAGE
 
-        self.imsize = []
-        for i in range(cfg.TREE.BRANCH_NUM):
-            self.imsize.append(base_size)
-            base_size *= 2
-
-        self.data = []
-        self.data_dir = data_dir
-
-        # TODO: Remove this?
-        self.bbox = None
-        split_dir = os.path.join(data_dir, split)
-
-        self.filenames, self.captions, self.ixtoword, \
-            self.wordtoix, self.n_words = self.load_text_data(data_dir, split)
-
-        print(self.filenames)
-
-        self.class_id = self.load_class_id(split_dir, len(self.filenames))
-        self.number_example = len(self.filenames)
-
-
-    def load_text_data(self, data_dir, split):
-        pass
-'''
-class DataLoader(data.Dataset):
+class DataLoader(torch.utils.data.Dataset):
     def __init__(self, root, json, vocab, transform=None):
         self.root = root
         self.coco = COCO(json)
         self.ids = list(self.coco.anns.keys())
         self.vocab = vocab
         self.transform = transform
+        self.norm = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize((0.485, 0.456, 0.406),
+                                 (0.229, 0.224, 0.225))
+        ])
+        self.imsize = []
+        base_size = cfg.TREE.BASE_SIZE
+        for i in range(cfg.TREE.BRANCH_NUM):
+            self.imsize.append(base_size)
+            base_size *= 2
 
 
     def __getitem__(self, index):
@@ -128,9 +115,10 @@ class DataLoader(data.Dataset):
         img_id = coco.anns[ann_id]['image_id']
         path = coco.loadImgs(img_id)[0]['file_name']
 
-        image = Image.open(os.path.join(self.root, path)).convert('RGB')
-        if self.transform is not None:
-            image = self.transform(image)
+        img_path = os.path.join(self.root, path)
+        image = get_imgs(img_path, self.imsize, transform=self.transform, normalize=self.norm)
+        #if self.transform is not None:
+        #    image = self.transform(image)
 
         tokens = nltk.tokenize.word_tokenize(str(caption).lower())
         caption = list()
@@ -145,14 +133,16 @@ class DataLoader(data.Dataset):
         return len(self.ids)
 
 
-def collate_fn(data):
-    data.sort(key=lambda x: len(x[1]), reverse=True)
-    images, captions = zip(*data)
-
+def collate_fn(batch):
+    # Sort batch by length of captions
+    batch.sort(key=lambda x: len(x[1]), reverse=True)
+    # create separate tuples of images and captions from batch
+    images, captions = zip(*batch)
+    # make images a torch tensor instead of tuple
     images = torch.stack(images, 0)
 
     lengths = [len(cap) for cap in captions]
-    targets = torch.zeroes(len(captions), max(lengths)).long()
+    targets = torch.zeros(len(captions), max(lengths)).long()
     for i, cap in enumerate(captions):
         end = lengths[i]
         targets[i, :end] = cap[:end]
@@ -160,8 +150,10 @@ def collate_fn(data):
     return images, targets, lengths
 
 
-def get_loader(method, vocab, batch_size, root_dir, transform):
-
+def get_loader(method, vocab, batch_size, transform):
+    root_dir = cfg.DATA_DIR
+    root = None
+    json = None
     # train/validation paths
     if method == 'train':
         root = os.path.join(root_dir, 'train2014_resized')

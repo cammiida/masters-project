@@ -11,10 +11,11 @@ __C.CONFIG_NAME = 'main'
 __C.ROOT_DATA_DIR = '../../data'
 __C.DATASET_SIZE = 'small'
 __C.DATA_DIR = ''
+__C.MODELS_DIR = '../../models'
 
 __C.DEVICE = 'cpu'
 __C.WORKERS = 6
-__C.OUTPUT_PATH = '../../'
+__C.OUTPUT_PATH = '../..'
 __C.RNN_TYPE = 'LSTM'
 __C.B_VALIDATION = False
 
@@ -33,7 +34,9 @@ __C.TRAIN.GENERATOR_LR = 2e-4
 __C.TRAIN.ENCODER_LR = 2e-4
 __C.TRAIN.RNN_GRAD_CLIP = 0.25
 __C.TRAIN.FLAG = True
-__C.TRAIN.NET_E = '../../models/STEM/text_encoder.pth'
+
+#__C.TRAIN.NET_E = 'STEM/text_encoder.pth'
+__C.TRAIN.NET_E = ''
 __C.TRAIN.NET_G = ''
 __C.TRAIN.B_NET_D = True
 
@@ -53,8 +56,8 @@ __C.CAP.EMBED_SIZE = 256  # TODO: 768 for BERT?
 __C.CAP.hidden_size = 512
 __C.CAP.num_layers = 1
 __C.CAP.learning_rate = 0.001
-__C.CAP.caption_cnn_path = '../../models/STREAM/cnn_encoder'
-__C.CAP.caption_rnn_path = '../../models/STREAM/rnn_encoder'
+__C.CAP.CAPTION_CNN_PATH = 'STREAM/cnn_encoder'
+__C.CAP.CAPTION_RNN_PATH = 'STREAM/rnn_decoder'
 
 
 # Modal options
@@ -65,6 +68,7 @@ __C.GAN.Z_DIM = 100
 __C.GAN.CONDITION_DIM = 100
 __C.GAN.R_NUM = 2
 __C.GAN.B_ATTENTION = True
+# TODO: Make it DCGAN?
 __C.GAN.B_DCGAN = False
 
 

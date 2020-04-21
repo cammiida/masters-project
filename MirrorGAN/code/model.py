@@ -1,7 +1,6 @@
 import torch
 import torch.nn as nn
 import torch.nn.parallel
-from torch.autograd import Variable
 from torchvision import models
 # import torch.utils.model_zoo as model_zoo
 import torch.nn.functional as F
@@ -21,7 +20,7 @@ class GLU(nn.Module):
         nc = x.size(1)
         assert nc % 2 == 0, 'channels don\'t divide 2!'
         nc = int(nc/2)
-        return x[:, :nc] * F.sigmoid(x[:, nc:])
+        return x[:, :nc] * torch.sigmoid(x[:, nc:])
 
 def conv1x1(in_planes, out_planes, bias=False):
     "1x1 convolution with padding"
@@ -80,6 +79,7 @@ class RNN_ENCODER(nn.Module):
         self.n_steps = cfg.TEXT.WORDS_NUM
         self.ntoken = ntoken
         self.ninput = ninput
+        # TODO: Check out warning
         self.drop_prob = drop_prob
         self.nlayers = nlayers
         self.bidirectional = bidirectional
@@ -116,6 +116,8 @@ class RNN_ENCODER(nn.Module):
     def init_weights(self):
         initrange = 0.1
         self.encoder.weight.data.uniform_(-initrange, initrange)
+        # TODO: Check if it is needed after all (see link below)
+        # (https://pytorch.org/tutorials/advanced/dynamic_quantization_tutorial.html)
         # Do not need to initialize RNN parameters, which have been initialized
         # http://pytorch.org/docs/master/_modules/torch/nn/modules/rnn.html#LSTM
         # self.decoder.weight.data.uniform_(-initrange, initrange)
@@ -124,13 +126,13 @@ class RNN_ENCODER(nn.Module):
     def init_hidden(self, bsz):
         weight = next(self.parameters()).data
         if self.rnn_type == 'LSTM':
-            return (Variable(weight.new(self.nlayers * self.num_directions,
-                                        bsz, self.nhidden).zero()),
-                    Variable(weight.new(self.nlayers * self.num_directions,
-                                        bsz, self.nhidden).zero()))
+            return (weight.new_zeros(self.nlayers * self.num_directions,
+                                        bsz, self.nhidden),
+                    weight.new_zeros(self.nlayers * self.num_directions,
+                                        bsz, self.nhidden))
         else:
-            return Variable(weight.new(self.nlayers * self.num_directions,
-                                       bsz, self.nhidden).zero())
+            return weight.new_zeros(self.nlayers * self.num_directions,
+                                       bsz, self.nhidden).zero()
 
 
     def forward(self, captions, cap_lens, hidden, mask=None):
@@ -139,14 +141,17 @@ class RNN_ENCODER(nn.Module):
         emb = self.drop(self.encoder(captions))
         #
         # Returns: a PackedSequence object
-        cap_lens = cap_lens.data.toList()
+        # TODO: See if cap_lens should have been a tensor from dataloader
+        # TODO: Check everywhere else where this is done as well
+        if isinstance(cap_lens, torch.Tensor):
+            cap_lens = cap_lens.data.toList()
         emb = pack_padded_sequence(emb, cap_lens, batch_first=True)
         # #hidden and memory (num_layers * num_directions, batch, hidden_size):
         # tensor containing the initial hidden state for each element in batch.
         # #output (batch, seq_len, hidden_size * num_directions)
         # #or a PackedSequence object:
         # tensor containing output freatures (h_t) from the last layer of RNN
-        output, hidden = self.rnn(emb, hidden)
+        output, hidden = self.rnn(emb, (hidden))
         # PackedSequence object
         # --> (batch, seq_len, hidden_size * num_directions)
         output = pad_packed_sequence(output, batch_first=True)[0]
@@ -213,7 +218,8 @@ class CNN_ENCODER(nn.Module):
     def forward(self, x):
         features = None
         # --> fixed-size input: batch x 3 x 299 x 299
-        x = nn.Upsample(size=(299, 299), mode='bilinear')(x)
+        # TODO: Check if align_corners should be False
+        x = nn.Upsample(size=(299, 299), mode='bilinear', align_corners=True)(x)
         # 299 x 299 x 3
         x = self.Conv2d_1a_3x3(x)
         # 149 x 149 x 32
@@ -278,7 +284,7 @@ class CA_NET(nn.Module):
     def __init__(self):
         super(CA_NET, self).__init__()
         self.t_dim = cfg.TEXT.EMBEDDING_DIM
-        self.c_dim = cfg.GAN_CONDITION_DIM
+        self.c_dim = cfg.GAN.CONDITION_DIM
         self.fc = nn.Linear(self.t_dim, self.c_dim * 4, bias=True)
         self.relu = GLU()
 
@@ -291,7 +297,8 @@ class CA_NET(nn.Module):
     def reparametrize(self, mu, logvar):
         std = logvar.mul(0.5).exp_()
         eps = torch.FloatTensor(std.size()).normal_().to(cfg.DEVICE)
-        eps = Variable(eps)
+        # TODO: Anything else needed instead of Variable?
+        #eps = Variable(eps)
         return eps.mul(std).add_(mu)
 
     def forward(self, text_embedding):
@@ -319,7 +326,7 @@ class INIT_STAGE_G(nn.Module):
         self.upsample1 = upBlock(ngf, ngf // 2)
         self.upsample2 = upBlock(ngf // 2, ngf // 4)
         self.upsample3 = upBlock(ngf // 4, ngf // 8)
-        self.upsample4 = upBlock(ngf // 4, ngf // 16)
+        self.upsample4 = upBlock(ngf // 8, ngf // 16)
 
     def forward(self, z_code, c_code):
         """
@@ -666,7 +673,8 @@ class CAPTION_CNN(nn.Module):
     def forward(self, images):
         """Extract feature vectors from input images."""
         #print ('image feature size before unsample:', images.size())
-        m = nn.Upsample(size=(224, 224), mode='bilinear')
+        # TODO: Check if align_corners should be False
+        m = nn.Upsample(size=(224, 224), mode='bilinear', align_corners=True)
         unsampled_images = m(images)
         #print ('image feature size after unsample:', unsampled_images.size())
         features = self.resnet(unsampled_images)
@@ -716,6 +724,7 @@ class Encoder(nn.Module):
     def __init__(self):
         super(Encoder, self).__init__()
         resnet = models.resnet101(pretrained=True)
+        self.resnet = nn.Sequential(*list(resnet.children())[:-2])
         self.adaptive_pool = nn.AdaptiveAvgPool2d((14,14))
 
     def forward(self, images):
@@ -732,7 +741,7 @@ class Decoder(nn.Module):
         self.encoder_dim = 2048
         self.attention_dim = 512
         # TODO: Check if this should be 128 for Albert?
-        self.embed_dim = 758
+        self.embed_dim = 768
         # Load pretrained model tokenizer (vocabulary)
         self.tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
         # Load pre-trained model (weights)
@@ -749,7 +758,8 @@ class Decoder(nn.Module):
         self.dec_att = nn.Linear(512, 512)
         self.att = nn.Linear(512, 1)
         self.relu = nn.ReLU()
-        self.softmax(nn.Softmax(dim=1))
+        # TODO: check that dim=1 is correct
+        self.softmax = nn.Softmax(dim=1)
 
         # decoder layers
         self.dropout = nn.Dropout(self.dropout_rate)

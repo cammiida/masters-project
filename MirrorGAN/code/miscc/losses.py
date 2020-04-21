@@ -72,7 +72,9 @@ def words_loss(img_features, words_emb, labels,
     masks = []
     att_maps = []
     similarities = []
-    cap_lens = cap_lens.data.tolist()
+
+    if (isinstance(cap_lens, torch.Tensor)):
+        cap_lens = cap_lens.data.tolist()
     for i in range(batch_size):
         if class_ids is not None:
             mask = (class_ids == class_ids[i]).astype(np.uint8)
@@ -191,7 +193,9 @@ def generator_loss(netsD, caption_cnn, caption_rnn, captions, fake_imgs,
             fakeimg_feature = caption_cnn(fake_imgs[i])
             captions.cuda()
             # TODO: Check if this can be done with BERT
-            target_cap = pack_padded_sequence(captions, cap_lens.data.tolist(), batch_first=True)[0].cuda()
+            if isinstance(cap_lens, torch.Tensor):
+                cap_lens = cap_lens.data.tolist()
+            target_cap = pack_padded_sequence(captions, cap_lens, batch_first=True)[0].cuda()
             cap_output = caption_rnn(fakeimg_feature, captions, cap_lens)
             cap_loss = caption_loss(cap_output, target_cap) * cfg.TRAIN.SMOOTH.LAMBDA1
 
