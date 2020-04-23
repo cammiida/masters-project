@@ -53,9 +53,6 @@ def prepare_data(data):
 
 def get_imgs(img_path, imsize, bbox=None, transform=None, normalize=None):
     img = Image.open(img_path).convert('RGB')
-    img_arr = np.asarray(img)
-    img = Image.fromarray(img_arr)
-
     width, height = img.size
     if bbox is not None:
         r = int(np.maximum(bbox[2], bbox[3]) * 0.75)
@@ -66,7 +63,6 @@ def get_imgs(img_path, imsize, bbox=None, transform=None, normalize=None):
         x1 = np.maximum(0, center_x - r)
         x2 = np.minimum(width, center_x + r)
         img = img.crop([x1, y1, x2, y2])
-        img = transforms.ToPILImage()(img)
 
     if transform is not None:
         img = transform(img)
@@ -82,10 +78,10 @@ def get_imgs(img_path, imsize, bbox=None, transform=None, normalize=None):
                 re_img = img
             ret.append(normalize(re_img))
 
-    # ret contains an array with a single tensor inside.
-    # Extract tensor
-    ret = ret[-1]
+    # ret contains an array with a one or more tensors (images) inside.
     return ret
+
+
 
 
 class DataLoader(torch.utils.data.Dataset):
@@ -95,11 +91,15 @@ class DataLoader(torch.utils.data.Dataset):
         self.ids = list(self.coco.anns.keys())
         self.vocab = vocab
         self.transform = transform
+        # TODO: Check if normalize should be like in MirrorGAN?
         self.norm = transforms.Compose([
             transforms.ToTensor(),
             transforms.Normalize((0.485, 0.456, 0.406),
                                  (0.229, 0.224, 0.225))
         ])
+        self.norm = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
         self.imsize = []
         base_size = cfg.TREE.BASE_SIZE
         for i in range(cfg.TREE.BRANCH_NUM):
@@ -116,9 +116,8 @@ class DataLoader(torch.utils.data.Dataset):
         path = coco.loadImgs(img_id)[0]['file_name']
 
         img_path = os.path.join(self.root, path)
-        image = get_imgs(img_path, self.imsize, transform=self.transform, normalize=self.norm)
-        #if self.transform is not None:
-        #    image = self.transform(image)
+        image = get_imgs(img_path, self.imsize,
+                         transform=self.transform, normalize=self.norm)
 
         tokens = nltk.tokenize.word_tokenize(str(caption).lower())
         caption = list()
@@ -138,8 +137,14 @@ def collate_fn(batch):
     batch.sort(key=lambda x: len(x[1]), reverse=True)
     # create separate tuples of images and captions from batch
     images, captions = zip(*batch)
-    # make images a torch tensor instead of tuple
-    images = torch.stack(images, 0)
+
+    new_images = []
+    for j in range(len(images[0])):
+        img_list = []
+        for i in range(len(images)):
+            img_list.append(images[i][j])
+        new_images.append(torch.stack(img_list))
+    images = new_images
 
     lengths = [len(cap) for cap in captions]
     targets = torch.zeros(len(captions), max(lengths)).long()

@@ -1,5 +1,4 @@
 from __future__ import print_function
-#from six.moves import range
 import torch
 import torch.optim as optim
 from torch.autograd import Variable
@@ -7,7 +6,7 @@ import torch.backends.cudnn as cudnn
 from PIL import Image
 from cfg.config import cfg
 from model import G_NET, D_NET64, D_NET128, D_NET256, RNN_ENCODER, CNN_ENCODER, CAPTION_CNN, CAPTION_RNN
-from datasets import prepare_data
+from model import Encoder, Decoder
 from miscc.utils import mkdir_p, weights_init, load_params, copy_G_params
 from miscc.utils import build_super_images, build_super_images2
 from miscc.losses import words_loss, discriminator_loss, generator_loss, KL_loss
@@ -15,6 +14,7 @@ from datasets import Vocabulary
 import os
 import time
 import numpy as np
+from tqdm import tqdm
 
 
 # MirrorGAN
@@ -42,11 +42,7 @@ class Trainer(object):
         ##  TEXT ENCODERS  ##
         #####################
 
-        if cfg.TRAIN.NET_E == '':
-            print('Error: no pretrainner text-image encoders')
-            return
-
-        image_encoder = CNN_ENCODER(cfg.TEXT_EMBEDDING_DIM)
+        image_encoder = CNN_ENCODER(cfg.TEXT.EMBEDDING_DIM)
         print('image_encoder: ', image_encoder)
         img_encoder_path = cfg.TRAIN.NET_E.replace('text_encoder', 'image_encoder')
         state_dict = \
@@ -73,18 +69,22 @@ class Trainer(object):
         ######################
 
         # cnn_encoder and rnn_encoder
-        caption_cnn = CAPTION_CNN(cfg.CAP.embed_size)
-        caption_cnn.load_state_dict(torch.load(cfg.CAP.caption_cnn_path, map_location=lambda storage, loc: storage))
+        #caption_cnn = CAPTION_CNN(cfg.CAP.EMBED_SIZE)
+        caption_cnn = Encoder()
+        caption_cnn_checkpoint = torch.load(cfg.CAP.CAPTION_CNN_PATH, map_location=lambda storage, loc: storage)
+        caption_cnn.load_state_dict(caption_cnn_checkpoint['model_state_dict'])
         for p in caption_cnn.parameters():
             p.requires_grad = False
-        print('Load caption model from: ', cfg.CAP.caption_cnn_path)
+        print('Load caption model from: ', cfg.CAP.CAPTION_CNN_PATH)
         caption_cnn.eval()
 
-        caption_rnn = CAPTION_RNN(cfg.CAP.embed_size, cfg.CAP.hidden_size * 2, self.n_words, cfg.CAP.num_layers)
-        caption_rnn.load_state_dict(torch.load(cfg.CAP.caption_rnn_path, map_location=lambda storage, loc: storage))
+        #caption_rnn = CAPTION_RNN(cfg.CAP.EMBED_SIZE, cfg.CAP.hidden_size * 2, self.n_words, cfg.CAP.num_layers)
+        caption_rnn = Decoder(vocab=self.vocab)
+        caption_rnn_checkpoint = torch.load(cfg.CAP.CAPTION_RNN_PATH, map_location=lambda storage, loc: storage)
+        caption_rnn.load_state_dict(caption_rnn_checkpoint['model_state_dict'])
         for p in caption_rnn.parameters():
             p.requires_grad = False
-        print('Load caption model from: ', cfg.CAP.caption_rnn_path)
+        print('Load caption model from: ', cfg.CAP.CAPTION_RNN_PATH)
 
         ###################################
         ##  GENERATOR AND DISCRIMINATOR  ##
@@ -153,9 +153,9 @@ class Trainer(object):
 
     def prepare_labels(self):
         batch_size = self.batch_size
-        real_labels = Variable(torch.FloatTensor(batch_size).fill_(1))
-        fake_labels = Variable(torch.FloatTensor(batch_size).fill_(0))
-        match_labels = Variable(torch.LongTensor(range(batch_size)))
+        real_labels = torch.FloatTensor(batch_size).fill_(1)
+        fake_labels = torch.FloatTensor(batch_size).fill_(0)
+        match_labels = torch.LongTensor(range(batch_size))
 
         real_labels = real_labels.to(cfg.DEVICE)
         fake_labels = fake_labels.to(cfg.DEVICE)
@@ -236,8 +236,8 @@ class Trainer(object):
 
         batch_size = self.batch_size
         nz = cfg.GAN.Z_DIM
-        noise = Variable(torch.FloatTensor(batch_size, nz))
-        fixed_noise = Variable(torch.FloatTensor(batch_size, nz).normal_(0, 1))
+        noise = torch.FloatTensor(batch_size, nz)
+        fixed_noise = torch.FloatTensor(batch_size, nz).normal_(0, 1)
 
         noise, fixed_noise = noise.to(cfg.DEVICE), fixed_noise.to(cfg.DEVICE)
 
@@ -245,11 +245,19 @@ class Trainer(object):
         for epoch in range(start_epoch, self.max_epoch):
             start_t = time.time()
 
-            data_iter = iter(self.data_loader)
-            step = 0
-            while step < self.num_batches:
+            #data_iter = iter(self.data_loader)
+            #step = 0
+            #while step < self.num_batches:
+            for i, data in enumerate(tqdm(self.data_loader)):
+                # Skip last batch in case batch size doesn't divide length of data
+                if i == len(self.data_loader):
+                    break
+
                 # (1) Prepare training data and compute text embeddings
-                (imgs, captions, cap_lens) = data_iter.next()
+                imgs, captions, cap_lens = data
+                #imgs = imgs.to(cfg.DEVICE)
+                #captions = captions.to(cfg.DEVICE)
+
                 hidden = text_encoder.init_hidden(batch_size)
                 # words_embs: batch_size x seq_len
                 # sent_emb: batch_size x nef
@@ -279,7 +287,7 @@ class Trainer(object):
 
                 # (4) Update G network: maximize log(D(G(z)))
                 # compute toatl loss for training G
-                step += 1
+                #step += 1
                 gen_iterations += 1
                 netG.zero_grad()
                 errG_total, G_logs = \
@@ -383,13 +391,15 @@ class Trainer(object):
 
             cnt = 0
 
+            # TODO: See if range should be changed
             for _ in range(1): # (cfg.TEXT.CAPTIONS_PER_IMAGE):
-                for step, data in enumerate(self.data_loader, 0):
+                for step, data in enumerate(tqdm(self.data_loader)):
                     cnt += batch_size
                     if step % 100 == 0:
                         print('step: ', step)
 
-                    (imgs, captions, cap_lens) = data
+                    _, captions, cap_lens = data
+                    captions = captions.to(cfg.DEVICE)
 
                     hidden = text_encoder.init_hidden(batch_size)
                     # words_embs: batch_size x nef x seq_len

@@ -26,7 +26,7 @@ __C.TREE.BASE_SIZE = 64
 
 # TRAINING OPTIONS
 __C.TRAIN = edict()
-__C.TRAIN.BATCH_SIZE = 64
+__C.TRAIN.BATCH_SIZE = 32 # TODO: Was 64, check if it can be
 __C.TRAIN.MAX_EPOCH = 600
 __C.TRAIN.SNAPSHOT_INTERVAL = 2000
 __C.TRAIN.DISCRIMINATOR_LR = 2e-4
@@ -35,8 +35,7 @@ __C.TRAIN.ENCODER_LR = 2e-4
 __C.TRAIN.RNN_GRAD_CLIP = 0.25
 __C.TRAIN.FLAG = True
 
-#__C.TRAIN.NET_E = 'STEM/text_encoder.pth'
-__C.TRAIN.NET_E = ''
+__C.TRAIN.NET_E = 'STEM/text_encoder.pth'
 __C.TRAIN.NET_G = ''
 __C.TRAIN.B_NET_D = True
 

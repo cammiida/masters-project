@@ -1,11 +1,10 @@
 from __future__ import print_function
 
 from cfg.config import cfg, cfg_from_file
-from datasets import DataLoader, get_loader
-from trainer import Trainer as trainer
+from datasets import get_loader, Vocabulary
+from trainer import Trainer
 
 import os
-import sys
 import time
 import pickle
 import random
@@ -16,72 +15,73 @@ import argparse
 import numpy as np
 
 import torch
-import torch.nn as nn
 import torchvision.transforms as transforms
 
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Train a MirrorGAN network')
-    # TODO: Add default config file
-    parser.add_argument('--cfg', dest='cfg_file',
-                        help='optional config file',
-                        default='cfg/...', type=str)
+    parser.add_argument('--cfg', dest='cfg_file', help='optional config file', default='', type=str)
     parser.add_argument('--root_data_dir', dest='root_data_dir', type=str, default='')
     parser.add_argument('--data_size', dest='data_size', type=str, default='')
     parser.add_argument('--manual_seed', type=int, help='manual seed')
-    args = parser.parse_args()
-    return args
+    return parser.parse_args()
 
 
-def main():
-    # Get data loader
-    imsize = cfg.TREE.BASE_SIZE * (2 ** (cfg.TREE.BRANCH_NUM - 1))
-    # rasnet transformation/normalization
-    transform = transforms.Compose([
-        transforms.Resize(int(imsize * 76 / 64)),
-        transforms.RandomCrop(imsize),
-        transforms.RandomHorizontalFlip(),
-        transforms.ToTensor(),
-        transforms.Normalize((0.485, 0.456, 0.406),
-                             (0.229, 0.224, 0.225))
-    ])
+# TODO: Fix this so it fits new dataset
+def gen_example(wordtoix, algo):
+    '''generate images from example sentences'''
+    from nltk.tokenize import RegexpTokenizer
+    filepath = '%s/example_filenames.txt' % (cfg.DATA_DIR)
+    data_dic = {}
+    with open(filepath, "r", encoding='utf-8') as f:
+        filenames = f.read().split('\n')
+        for name in filenames:
+            if len(name) == 0:
+                continue
+            filepath = '%s/%s.txt' % (cfg.DATA_DIR, name)
+            with open(filepath, "r", encoding='utf-8') as f:
+                print('Load from:', name)
+                sentences = f.read().split('\n')
+                # a list of indices for a sentence
+                captions = []
+                cap_lens = []
+                for sent in sentences:
+                    if len(sent) == 0:
+                        continue
+                    sent = sent.replace("\ufffd\ufffd", " ")
+                    tokenizer = RegexpTokenizer(r'\w+')
+                    tokens = tokenizer.tokenize(sent.lower())
+                    if len(tokens) == 0:
+                        print('sent', sent)
+                        continue
 
-    ######################
-    # Run training/validation
-    ######################
+                    rev = []
+                    for t in tokens:
+                        t = t.encode('ascii', 'ignore').decode('ascii')
+                        if len(t) > 0 and t in wordtoix:
+                            rev.append(wordtoix[t])
+                    captions.append(rev)
+                    cap_lens.append(len(rev))
+            max_len = np.max(cap_lens)
 
-    if cfg.TRAIN_MODEL:
-        # Load data
-        train_loader = get_loader('train', vocab, cfg.BATCH_SIZE, root_dir=cfg.DATA_DIR)
-        #train(encoder=enc, decoder=dec, decoder_optimizer=dec_optim,
-        #      criterion=crit, train_loader=train_loader)
-        # TODO: Fix that trainer doesn't take the dataset.n_words or dataset.ixtoword arguments
-        algo = trainer(output_dir, train_loader, vocab=vocab)
-        train_start_t = time.time()
-        algo.train()
-        train_end_t = time.time()
-        print('Total time for trainig: ', train_end_t - train_start_t)
-
-    if cfg.VALID_MODEL:
-        # Load data
-        val_loader = get_loader('val', vocab, cfg.BATCH_SIZE, root_dir=cfg.DATA_DIR)
-        # Don't caluclate gradients for validation
-        #with torch.no_grad():
-        #    validate(encoder=enc, decoder=dec, criterion=crit, val_loader=val_loader)
-        algo = trainer(output_dir, val_loader, vocab)
-        val_start_t = time.time()
-        algo.sampling(split_dir)
-        val_end_t = time.time()
-        print('Total time for validation: ', val_end_t - val_start_t)
-
-        # TODO: Add possibility to generate images for customized captions
-        # like in MirrorGAN main.py
+            sorted_indices = np.argsort(cap_lens)[::-1]
+            cap_lens = np.asarray(cap_lens)
+            cap_lens = cap_lens[sorted_indices]
+            cap_array = np.zeros((len(captions), max_len), dtype='int64')
+            for i in range(len(captions)):
+                idx = sorted_indices[i]
+                cap = captions[idx]
+                c_len = len(cap)
+                cap_array[i, :c_len] = cap
+            key = name[(name.rfind('/') + 1):]
+            data_dic[key] = [cap_array, cap_lens, sorted_indices]
+    algo.gen_example(data_dic)
 
 
-if __name__ == '__main__':
+def set_config_params():
     # Get file
     args = parse_args()
-    if args.cfg_file is not None:
+    if args.cfg_file != '':
         cfg_from_file(args.cfg_file)
 
     # Set config
@@ -103,6 +103,17 @@ if __name__ == '__main__':
     np.random.seed(args.manual_seed)
     torch.manual_seed(args.manual_seed)
 
+    # Check that models config parameters are set
+    assert cfg.MODELS_DIR != '', \
+        "Directory for models must be set."
+    assert cfg.TRAIN.NET_E != '' and cfg.CAP.CAPTION_CNN_PATH != '' and cfg.CAP.CAPTION_RNN_PATH != '', \
+        "Model names must be specified."
+
+    # Set models paths
+    cfg.TRAIN.NET_E = os.path.join(cfg.MODELS_DIR, cfg.DATASET_SIZE, cfg.TRAIN.NET_E)
+    cfg.CAP.CAPTION_CNN_PATH = os.path.join(cfg.MODELS_DIR, cfg.DATASET_SIZE, cfg.CAP.CAPTION_CNN_PATH)
+    cfg.CAP.CAPTION_RNN_PATH = os.path.join(cfg.MODELS_DIR, cfg.DATASET_SIZE, cfg.CAP.CAPTION_RNN_PATH)
+
     # Set device
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(args.manual_seed)
@@ -110,10 +121,15 @@ if __name__ == '__main__':
     else:
         cfg.DEVICE = torch.device('cpu')
 
+
+if __name__ == '__main__':
+    set_config_params()
+
     now = datetime.datetime.now(dateutil.tz.tzlocal())
     timestamp = now.strftime('%Y_%m_%d_%H_%M_%S')
-    output_dir = '%s/output/%s_%s_%s' % \
-                 (cfg.OUTPUT_PATH, cfg.DATASET_NAME, cfg.CONFIG_NAME, timestamp)
+    output_dir = '%s/output/%s/%s_%s_%s' % \
+                 (cfg.OUTPUT_PATH, cfg.DATASET_SIZE,
+                  cfg.DATASET_NAME, cfg.CONFIG_NAME, timestamp)
 
     print('output_dir: ', output_dir)
 
@@ -123,11 +139,47 @@ if __name__ == '__main__':
         split_dir = 'valid'
 
     # Load vocabulary
-    with open(os.path.join(cfg.DATA_DIR, 'vocab_pkl'), 'rb') as f:
-        vocab = pickle.load(f)
+    f = open(os.path.join(cfg.DATA_DIR, 'vocab.pkl'), 'rb')
+    vocab = pickle.load(f)
+
+    # Get data loader
+    imsize = cfg.TREE.BASE_SIZE * (2 ** (cfg.TREE.BRANCH_NUM - 1))
+    # rasnet transformation/normalization
+    transform = transforms.Compose([
+        transforms.Resize(int(imsize * 76 / 64)),
+        transforms.RandomCrop(imsize),
+        transforms.RandomHorizontalFlip()
+    ])
+
+    ######################
+    # Run training/validation
+    ######################
 
 
-    main()
+    # Load data
+    train_loader = get_loader('train', vocab, cfg.TRAIN.BATCH_SIZE,
+                              transform=transform)
+    # train(encoder=enc, decoder=dec, decoder_optimizer=dec_optim,
+    #      criterion=crit, train_loader=train_loader)
+    algo = Trainer(output_dir, train_loader, vocab=vocab)
+    start_t = time.time()
+
+    if cfg.TRAIN.FLAG:
+        algo.train()
+
+
+    else:
+        '''generate images from pre-extracted embeddings'''
+        if cfg.B_VALIDATION:
+            algo.sampling(split_dir)
+        else:
+            # TODO: Fix gen_example so it fits new dataset
+            pass
+            # gen_example(vocab.word2idx, algo)
+
+    end_t = time.time()
+    print('Total time for trainig: ', end_t - start_t)
+
 
 
 
