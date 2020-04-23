@@ -12,6 +12,17 @@ from transformers import BertTokenizer, BertModel
 from datasets import Vocabulary
 
 
+class MyDataParallel(nn.DataParallel):
+    """
+        Allow nn.DataParallel to call model's attributes.
+    """
+    def __getattr__(self, name):
+        try:
+            return super().__getattr__(name)
+        except AttributeError:
+            return getattr(self.module, name)
+
+
 class GLU(nn.Module):
     def __init__(self):
         super(GLU, self).__init__()

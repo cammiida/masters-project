@@ -7,6 +7,7 @@ from PIL import Image
 from cfg.config import cfg
 from model import G_NET, D_NET64, D_NET128, D_NET256, RNN_ENCODER, CNN_ENCODER, CAPTION_CNN, CAPTION_RNN
 from model import Encoder, Decoder
+from model import MyDataParallel
 from miscc.utils import mkdir_p, weights_init, load_params, copy_G_params
 from miscc.utils import build_super_images, build_super_images2
 from miscc.losses import words_loss, discriminator_loss, generator_loss, KL_loss
@@ -229,6 +230,13 @@ class Trainer(object):
     def train(self):
         text_encoder, image_encoder, caption_cnn, caption_rnn, netG, netsD, start_epoch = \
             self.build_models()
+
+        # Parallelize netG and netsG models
+        netG = MyDataParallel(netG)
+        for i in range(len(netsD)):
+            netsD[i] = MyDataParallel(netsD[i])
+
+
         avg_param_G = copy_G_params(netG)
 
         optimizerG, optimizersD = self.define_optimizers(netG, netsD)
@@ -256,7 +264,7 @@ class Trainer(object):
                 # (1) Prepare training data and compute text embeddings
                 imgs, captions, cap_lens = data
                 #imgs = imgs.to(cfg.DEVICE)
-                #captions = captions.to(cfg.DEVICE)
+                captions = captions.to(cfg.DEVICE)
 
                 hidden = text_encoder.init_hidden(batch_size)
                 # words_embs: batch_size x seq_len
@@ -283,7 +291,7 @@ class Trainer(object):
                     errD.backward()
                     optimizersD[i].step()
                     errD_total += errD
-                    D_logs += 'errD%d: %.2f ' % (i, errD.data[0])
+                    D_logs += 'errD%d: %.2f ' % (i, errD.data.item())
 
                 # (4) Update G network: maximize log(D(G(z)))
                 # compute toatl loss for training G
@@ -295,7 +303,7 @@ class Trainer(object):
                                    real_labels, sent_emb, cap_lens)
                 kl_loss = KL_loss(mu, logvar)
                 errG_total += kl_loss
-                G_logs += 'kl_loss: %.2f ' % kl_loss.data[0]
+                G_logs += 'kl_loss: %.2f ' % kl_loss.data.item()
                 # backward and update parameters
                 errG_total.backward()
                 optimizerG.step()
@@ -317,7 +325,7 @@ class Trainer(object):
             print('''[%d/%d][%d]
                               Loss_D: %.2f Loss_G: %.2f Time: %.2fs'''
                   % (epoch, self.max_epoch, self.num_batches,
-                     errD_total.data[0], errG_total.data[0],
+                     errD_total.data.item(), errG_total.data.item(),
                      end_t - start_t))
 
             if epoch % cfg.TRAIN.SNAPSHOT_INTERVAL == 0:  # and epoch != 0:
