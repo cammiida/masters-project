@@ -26,7 +26,7 @@ __C.TREE.BASE_SIZE = 64
 
 # TRAINING OPTIONS
 __C.TRAIN = edict()
-__C.TRAIN.BATCH_SIZE = 32 # TODO: Was 64, check if it can be
+__C.TRAIN.BATCH_SIZE = 64 # TODO: Upload to IDUN and check if it can be 64
 __C.TRAIN.MAX_EPOCH = 600
 __C.TRAIN.SNAPSHOT_INTERVAL = 2000
 __C.TRAIN.DISCRIMINATOR_LR = 2e-4
