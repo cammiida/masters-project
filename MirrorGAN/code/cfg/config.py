@@ -7,7 +7,7 @@ cfg = __C
 
 # Dataset name: coco
 __C.DATASET_NAME = 'coco'
-__C.CONFIG_NAME = 'main'
+__C.CONFIG_NAME = 'MirrorGAN'
 __C.ROOT_DATA_DIR = '../../data'
 __C.DATASET_SIZE = 'small'
 __C.DATA_DIR = ''
