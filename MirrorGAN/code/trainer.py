@@ -258,7 +258,7 @@ class Trainer(object):
             #while step < self.num_batches:
             for i, data in enumerate(tqdm(self.data_loader)):
                 # Skip last batch in case batch size doesn't divide length of data
-                if i == len(self.data_loader):
+                if i == len(self.data_loader) - 1:
                     break
 
                 # (1) Prepare training data and compute text embeddings
