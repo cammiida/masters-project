@@ -801,12 +801,12 @@ class Decoder(nn.Module):
             while len(cap_idx) < max_dec_len:
                 cap_idx.append(cfg.VOCAB.PAD)
 
-            cap = ' '.joinn([self.vocab.idx2word[word_idx.item()] for word_idx in cap_idx])
+            cap = ' '.join([self.vocab.idx2word[word_idx.item()] for word_idx in cap_idx])
             cap = u'[CLS] '+cap
 
             tokenized_cap = tokenizer.tokenize(cap)
             indexed_tokens = tokenizer.convert_tokens_to_ids(tokenized_cap)
-            tokens_tensor = torch.tensor([indexed_tokens]).to(self.device)
+            tokens_tensor = torch.tensor([indexed_tokens]).to(cfg.DEVICE)
 
             with torch.no_grad():
                 encoded_layers, _ = model(tokens_tensor)
@@ -853,8 +853,8 @@ class Decoder(nn.Module):
         h = self.h_lin(avg_enc_out)
         c = self.c_lin(avg_enc_out)
 
-        predictions = torch.zeros(batch_size, max_dec_len, vocab_size).to(self.device)
-        alphas = torch.zeros(batch_size, max_dec_len, num_pixels).to(self.device)
+        predictions = torch.zeros(batch_size, max_dec_len, vocab_size).to(cfg.DEVICE)
+        alphas = torch.zeros(batch_size, max_dec_len, num_pixels).to(cfg.DEVICE)
 
         for t in range(max(dec_len)):
             batch_size_t = sum([l > t for l in dec_len])
