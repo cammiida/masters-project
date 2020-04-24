@@ -173,7 +173,7 @@ class Trainer(object):
 
         for i in range(len(netsD)):
             netD = netsD[i]
-            torch.save(netD.state_dict(),
+            torch.save(netD.module.state_dict(),
                        '%s/netD%d.pth' % (self.model_dir, i))
         print('Save G/Ds models.')
 
