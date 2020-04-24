@@ -225,7 +225,7 @@ def evaluate(dataloader, cnn_model, rnn_model, batch_size, labels):
 def main():
     now = datetime.datetime.now(dateutil.tz.tzlocal())
     timestamp = now.strftime('%Y_%m_%d_%H_%M_%S')
-    output_dir = '%s/output/%/%s_%s_%s' % \
+    output_dir = '%s/output/%s/%s_%s_%s' % \
                  (cfg.OUTPUT_PATH, cfg.DATASET_SIZE,
                   cfg.DATASET_NAME, cfg.CONFIG_NAME, timestamp)
 
