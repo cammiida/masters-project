@@ -1,14 +1,7 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
-
 from cfg.config import cfg
 
 import torch
 import torch.utils.data
-from torch.autograd import Variable
 import torchvision.transforms as transforms
 
 import os
@@ -16,39 +9,7 @@ import nltk
 import numpy as np
 from PIL import Image
 from pycocotools.coco import COCO
-
-# TODO: Do we even need this since collate_fn is used?
-'''
-def prepare_data(data):
-    print("prepare data")
-    #imgs, captions, captions_lens, class_ids, keys = data
-    imgs, captions, captions_lens = data
-    # sort data by the length in a decreasing order
-    sorted_cap_lens, sorted_cap_indices = \
-        torch.sort(captions_lens, 0, True)
-
-    print("imgs: ", imgs)
-    print("sorted_cap_indices:", sorted_cap_indices)
-    print("prepare data, imgs size: ", imgs.size())
-    print("sorted_cap_indices size: ", sorted_cap_indices.size())
-    real_imgs = []
-    for i in range(len(imgs)):
-        imgs[i] = imgs[i][sorted_cap_indices]
-        real_imgs.append(imgs[i]).to(cfg.DEVICE)
-
-    print("captions size before squeeze: ", captions.size())
-    captions = captions[sorted_cap_indices].squeeze()
-    print("captions size after squeeze: ", captions.size())
-    #class_ids = class_ids[sorted_cap_indices].numpy()
-    # sent_indices = sent_indices[sorted_cap_indices]
-    #keys = [keys[i] for i in sorted_cap_indices.numpy()]
-
-    # Were Variables
-    captions = captions.to(cfg.DEVICE)
-    sorted_cap_lens = sorted_cap_lens.to(cfg.DEVICE)
-
-    return [real_imgs, captions, sorted_cap_lens] #, class_ids, keys]
-'''
+from collections import Counter
 
 
 def get_imgs(img_path, imsize, bbox=None, transform=None, normalize=None):
@@ -91,12 +52,6 @@ class DataLoader(torch.utils.data.Dataset):
         self.ids = list(self.coco.anns.keys())
         self.vocab = vocab
         self.transform = transform
-        # TODO: Check if normalize should be like in MirrorGAN?
-        self.norm = transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Normalize((0.485, 0.456, 0.406),
-                                 (0.229, 0.224, 0.225))
-        ])
         self.norm = transforms.Compose([
             transforms.ToTensor(),
             transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
@@ -119,6 +74,7 @@ class DataLoader(torch.utils.data.Dataset):
         image = get_imgs(img_path, self.imsize,
                          transform=self.transform, normalize=self.norm)
 
+        # TODO: Change this to BERT
         tokens = nltk.tokenize.word_tokenize(str(caption).lower())
         caption = list()
         caption.append(vocab('<start>'))
@@ -178,26 +134,6 @@ def get_loader(method, vocab, batch_size, transform):
 
     return data_loader
 
-
-class Vocabulary(object):
-    def __init__(self):
-        self.word2idx = {}
-        self.idx2word = {}
-        self.idx = 0
-
-    def add_word(self, word):
-        if not word in self.word2idx:
-            self.word2idx[word] = self.idx
-            self.idx2word[self.idx] = word
-            self.idx += 1
-
-    def __call__(self, word):
-        if not word in self.word2idx:
-            return self.word2idx['<unk>']
-        return self.word2idx[word]
-
-    def __len__(self):
-        return len(self.word2idx)
 
 
 
