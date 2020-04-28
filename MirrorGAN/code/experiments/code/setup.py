@@ -9,12 +9,13 @@ from data_processer import Vocabulary
 from model import G_NET, RNN_ENCODER
 import numpy as np
 from PIL import Image
-
-
+import matplotlib.pyplot as plt
+import time
+import torchvision.utils as vutils
 
 
 class Experimenter():
-    def __init__(self, model_path, data_path, data_size, max_images=64):
+    def __init__(self, model_path, data_path, data_size):
         self.nz = cfg.GAN.Z_DIM
 
         # Load vocabulary
@@ -114,28 +115,40 @@ class Experimenter():
         return pil_imgs
 
 
+def display_img_grid(imgs: torch.Tensor, title='Generated Images'):
+    """
+    :param imgs: PyTorch tensor with stacked images of same size
+    :param title: Title for the plot
+    :return: None
+    """
+    # Print images
+    # imgs = experimenter.gen_pil_imgs(fake_imgs)
+    print(type(imgs))
+    img_grid = vutils.make_grid(imgs, padding=2, normalize=True).cpu()
+    plt.figure(figsize=(8, 8))
+    plt.axis("off")
+    plt.title(title)
+    plt.imshow(np.transpose(img_grid, (1, 2, 0)))
+    plt.show()
+
 def main():
     model_path = '../../../../models/'
     data_path = '../../../../data/'
     data_size = 'big'
-    max_images = 64
 
     sentences = [
         'I am sitting by the window, looking out over the ocean.',
         'There is a golden retriever sitting by the door.',
-        # 'So this is the third sentence.'
+        'So this is the third sentence.'
     ]
 
-    experimenter = Experimenter(model_path, data_path, data_size, max_images)
+    experimenter = Experimenter(model_path, data_path, data_size)
     fake_imgs = experimenter.generate_images(sentences)
 
     # Get highest resolution images
     fake_imgs = fake_imgs[-1]
+    display_img_grid(fake_imgs)
 
-    # Print images
-    imgs = experimenter.gen_pil_imgs(fake_imgs)
-    for img in imgs:
-        img.show()
 
 def experiment1():
     pass
