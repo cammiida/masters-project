@@ -1,2 +1,0 @@
-TRAIN:
-  BATCH_SIZE: 32 # TODO: Check optimal batch size
