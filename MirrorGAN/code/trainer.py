@@ -4,6 +4,7 @@ import torch.optim as optim
 from torch.autograd import Variable
 import torch.backends.cudnn as cudnn
 from PIL import Image
+import matplotlib.pyplot as plt
 from cfg.config import cfg
 from model import G_NET, D_NET64, D_NET128, D_NET256, RNN_ENCODER, CNN_ENCODER, CAPTION_CNN, CAPTION_RNN
 from model import Encoder, Decoder
@@ -22,6 +23,7 @@ from tqdm import tqdm
 class Trainer(object):
     def __init__(self, output_dir, data_loader, vocab):
         if cfg.TRAIN.FLAG:
+            self.output_dir = output_dir
             self.model_dir = os.path.join(output_dir, 'Model')
             self.image_dir = os.path.join(output_dir, 'Image')
             mkdir_p(self.model_dir)
@@ -37,6 +39,7 @@ class Trainer(object):
         self.n_words = len(vocab)
         self.data_loader = data_loader
         self.num_batches = len(self.data_loader)
+        self.ixtoword = vocab.idx2word
 
     def build_models(self):
         #####################
@@ -249,13 +252,13 @@ class Trainer(object):
 
         noise, fixed_noise = noise.to(cfg.DEVICE), fixed_noise.to(cfg.DEVICE)
 
+        # TODO: Add to losses list and plot -> save plot
+        G_losses = []
+        D_losses = []
         gen_iterations = 0
         for epoch in range(start_epoch, self.max_epoch):
             start_t = time.time()
 
-            #data_iter = iter(self.data_loader)
-            #step = 0
-            #while step < self.num_batches:
             for i, data in enumerate(tqdm(self.data_loader)):
                 # Skip last batch in case batch size doesn't divide length of data
                 if i == len(self.data_loader) - 1:
@@ -294,7 +297,7 @@ class Trainer(object):
                     D_logs += 'errD%d: %.2f ' % (i, errD.data.item())
 
                 # (4) Update G network: maximize log(D(G(z)))
-                # compute toatl loss for training G
+                # compute total loss for training G
                 #step += 1
                 gen_iterations += 1
                 netG.zero_grad()
@@ -320,6 +323,9 @@ class Trainer(object):
                                           words_embs, mask, image_encoder,
                                           captions, cap_lens, epoch, name='average')
                     load_params(netG, backup_para)
+
+                D_losses.append(errD.data.item())
+                G_losses.append(kl_loss.data.item())
             end_t = time.time()
 
             print('''[%d/%d][%d]
@@ -328,10 +334,28 @@ class Trainer(object):
                      errD_total.data.item(), errG_total.data.item(),
                      end_t - start_t))
 
-            if epoch % cfg.TRAIN.SNAPSHOT_INTERVAL == 0:  # and epoch != 0:
-                self.save_model(netG, avg_param_G, netsD, epoch)
+            #if epoch % cfg.TRAIN.SNAPSHOT_INTERVAL == 0:  # and epoch != 0:
+            self.save_model(netG, avg_param_G, netsD, epoch) # Save every epoch
+            self.save_losses(D_losses, G_losses, epoch)
 
-        self.save_model(netG, avg_param_G, netsD, epoch)
+        self.save_model(netG, avg_param_G, netsD, self.max_epoch)
+
+
+    def save_losses(self, D_losses, G_losses, epoch):
+        plt.figure(figsize=(10, 5))
+        plt.title("Generator and Discriminator Loss During Training")
+        plt.plot(G_losses, label="G")
+        plt.plot(D_losses, label="D")
+        plt.xlabel("iterations")
+        plt.ylabel("Loss")
+        plt.legend()
+        save_dir = os.path.join(self.output_dir, 'Losses')
+        if not os.path.isdir(save_dir):
+            mkdir_p(save_dir)
+
+        losses_name = 'G_D_losses_epoch_%d' % epoch
+        losses_path = os.path.join(save_dir, losses_name)
+        plt.savefig(losses_path)
 
 
     def save_single_images(self, images, filenames, save_dir,
