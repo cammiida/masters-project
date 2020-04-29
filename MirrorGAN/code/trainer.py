@@ -503,14 +503,16 @@ class Trainer(object):
 
                 batch_size = captions.shape[0]
                 nz = cfg.GAN.Z_DIM
-                captions = Variable(torch.from_numpy(captions), volatile=True)
-                cap_lens = Variable(torch.from_numpy(cap_lens), volatile=True)
+                with torch.no_grad():
+                    captions = torch.from_numpy(captions)
+                    cap_lens = torch.from_numpy(cap_lens)
 
                 captions = captions.to(cfg.DEVICE)
                 cap_lens = cap_lens.to(cfg.DEVICE)
                 for i in range(1):  # 16
-                    noise = Variable(torch.FloatTensor(batch_size, nz), volatile=True)
-                    noise = noise.to(cfg.DEVICE)
+                    with torch.no_grad():
+                        noise = torch.FloatTensor(batch_size, nz)
+                        noise = noise.to(cfg.DEVICE)
                     # (1) Extract text embeddings
                     hidden = text_encoder.init_hidden(batch_size)
                     # words_embs: batch_size x nef x seq_len
