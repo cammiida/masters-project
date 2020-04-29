@@ -9,7 +9,7 @@ from cfg.config import cfg
 from GLAttention import GLAttentionGeneral as ATT_NET
 from miscc.utils import load_state_dict_from_url
 from transformers import BertTokenizer, BertModel
-from datasets import Vocabulary
+from data_processer import Vocabulary
 
 
 class MyDataParallel(nn.DataParallel):

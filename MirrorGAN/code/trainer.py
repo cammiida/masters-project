@@ -11,7 +11,7 @@ from model import MyDataParallel
 from miscc.utils import mkdir_p, weights_init, load_params, copy_G_params
 from miscc.utils import build_super_images, build_super_images2
 from miscc.losses import words_loss, discriminator_loss, generator_loss, KL_loss
-from datasets import Vocabulary
+from data_processer import Vocabulary
 import os
 import time
 import numpy as np

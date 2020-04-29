@@ -1,7 +1,8 @@
 from __future__ import print_function
 
 from cfg.config import cfg, cfg_from_file
-from datasets import get_loader, Vocabulary
+from datasets import get_loader
+from data_processer import Vocabulary
 from trainer import Trainer
 
 import os
