@@ -22,6 +22,7 @@ import argparse
 import numpy as np
 from PIL import Image
 from tqdm import tqdm
+import matplotlib.pyplot as plt
 
 import torch
 import torch.optim as optim
@@ -65,6 +66,8 @@ def collate_fn(batch):
 
 def train(dataloader, cnn_model, rnn_model, batch_size,
           labels, optimizer, epoch, image_dir):
+    print("Training...")
+
     cnn_model.train()
     rnn_model.train()
     s_total_loss0 = 0
@@ -73,14 +76,14 @@ def train(dataloader, cnn_model, rnn_model, batch_size,
     w_total_loss1 = 0
     count = (epoch + 1) * len(dataloader)
     start_time = time.time()
+
     for step, data in enumerate(tqdm(dataloader)):
         rnn_model.zero_grad()
         cnn_model.zero_grad()
 
-        #imgs, captions, cap_lens = data
         imgs, captions, cap_lens = data
         # skip last batch if it is not full batch size
-        if len(imgs) == batch_size:
+        if captions.shape[0] == batch_size:
             imgs = imgs.to(cfg.DEVICE)
             captions = captions.to(cfg.DEVICE)
 
@@ -180,17 +183,23 @@ def build_models():
 
 
 def evaluate(dataloader, cnn_model, rnn_model, batch_size, labels):
+    print("Evaluating...")
     cnn_model.eval()
     rnn_model.eval()
 
     s_total_loss = 0
     w_total_loss = 0
-    for step, data in enumerate(dataloader, 0):
-        real_imgs, captions, cap_lens  = data
+    s_loss = []
+    w_loss = []
+    for step, data in enumerate(tqdm(dataloader)):
+        real_imgs, captions, cap_lens = data
+
         # TODO: Should all of them be sent to cuda?
-        real_imgs = real_imgs.to(cfg.DEVICE)
+        for size_batch in real_imgs:
+            size_batch.to(cfg.DEVICE)
+        # real_imgs = real_imgs.to(cfg.DEVICE)
         captions = captions.to(cfg.DEVICE)
-        # cap_lens = torch.cuda.IntTensor(cap_lens)
+        cap_lens = torch.to(cfg.DEVICE)
 
         words_features, sent_code = cnn_model(real_imgs)
         #words_features, sent_code = cnn_model(real_imgs[-1])
@@ -209,14 +218,31 @@ def evaluate(dataloader, cnn_model, rnn_model, batch_size, labels):
         s_loss0, s_loss1 = \
             sent_loss(sent_code, sent_emb, labels, class_ids=None, batch_size=batch_size)
         s_total_loss += (s_loss0 + s_loss1).data
-
+        s_loss.append(s_total_loss)
+        w_loss.append(w_total_loss)
         if step == 50:
             break
 
     s_cur_loss = s_total_loss.item() / step
     w_cur_loss = w_total_loss.item() / step
 
-    return s_cur_loss, w_cur_loss
+    return s_cur_loss, w_cur_loss, s_loss, w_loss
+
+def save_losses(s_loss, w_loss, epoch, save_dir):
+    plt.figure(figsize=(10, 5))
+    plt.title("DAMSM Word and Sentence Loss During Training")
+    plt.plot(s_loss, label="Sentence")
+    plt.plot(w_loss, label="Word")
+    plt.xlabel("iterations")
+    plt.ylabel("Loss")
+    plt.legend()
+    save_dir = os.path.join(save_dir, 'Losses')
+    if not os.path.isdir(save_dir):
+        mkdir_p(save_dir)
+
+    losses_name = 'DAMSM_losses_epoch_%d' % epoch
+    losses_path = os.path.join(save_dir, losses_name)
+    plt.savefig(losses_path)
 
 
 def main():
@@ -232,6 +258,7 @@ def main():
     image_dir = os.path.join(output_dir, 'Image')
     mkdir_p(model_dir)
     mkdir_p(image_dir)
+
     # TODO: Add VALID.BATCH_SIZE to config and find right value
     batch_size = cfg.TRAIN.BATCH_SIZE
 
@@ -243,9 +270,8 @@ def main():
     text_encoder, image_encoder, labels, start_epoch = build_models()
     para = list(text_encoder.parameters())
     for v in list(text_encoder.parameters()):
-        if __name__ == '__main__':
-            if v.requires_grad:
-                para.append(v)
+        if v.requires_grad:
+            para.append(v)
         # optimizer = optim.Adam(para, lr=cfg.TRAIN.ENCODER_LR, betas=(0.5, 0.999))
         # At any point you can hit Ctrl + C to break out of training early
         try:
@@ -257,8 +283,11 @@ def main():
                               batch_size, labels, optimizer, epoch, image_dir)
                 print('-' * 89)
                 if len(val_loader) > 0:
-                    s_loss, w_loss = evaluate(val_loader, image_encoder, text_encoder,
-                                                batch_size, labels)
+                    s_loss, w_loss, s_loss_list, w_loss_list = \
+                        evaluate(val_loader, image_encoder, text_encoder, batch_size, labels)
+
+                    save_losses(s_loss_list, w_loss_list, epoch, output_dir)
+
                     print('| end epoch {:3d} | valid loss '
                           '{:5.2f} {:5.2f} | lr {:.5f}|'
                           .format(epoch, s_loss, w_loss, lr))
