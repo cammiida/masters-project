@@ -14,7 +14,7 @@ __C.DATA_DIR = ''
 __C.MODELS_DIR = '../../models'
 
 __C.DEVICE = 'cpu'
-__C.WORKERS = 6
+__C.WORKERS = 8
 __C.OUTPUT_PATH = '../..'
 __C.RNN_TYPE = 'LSTM'
 __C.B_VALIDATION = False
@@ -26,7 +26,7 @@ __C.TREE.BASE_SIZE = 64
 
 # TRAINING OPTIONS
 __C.TRAIN = edict()
-__C.TRAIN.BATCH_SIZE = 64 # TODO: Upload to IDUN and check if it can be 64
+__C.TRAIN.BATCH_SIZE = 32 # TODO: Should be 64, but takes forever to get resources...
 __C.TRAIN.MAX_EPOCH = 600
 __C.TRAIN.SNAPSHOT_INTERVAL = 2000
 __C.TRAIN.DISCRIMINATOR_LR = 2e-4
