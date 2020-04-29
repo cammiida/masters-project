@@ -83,8 +83,6 @@ def train(dataloader, cnn_model, rnn_model, batch_size,
         if len(imgs) == batch_size:
             imgs = imgs.to(cfg.DEVICE)
             captions = captions.to(cfg.DEVICE)
-            #cap_lens = torch.cuda.IntTensor(cap_lens)
-
 
             # words_features: batch_size x nef x 17 x 17
             # sent_code: batch_size x nef
@@ -153,11 +151,10 @@ def train(dataloader, cnn_model, rnn_model, batch_size,
 
 
 def build_models():
-    # build model ############################################################
     text_encoder = RNN_ENCODER(len(vocab), nhidden=cfg.TEXT.EMBEDDING_DIM)
     image_encoder = CNN_ENCODER(cfg.TEXT.EMBEDDING_DIM)
-    # TODO: Check out what this warning is
     labels = torch.LongTensor(range(cfg.TRAIN.BATCH_SIZE))
+
     start_epoch = 0
     if cfg.TRAIN.NET_E != '':
         state_dict = torch.load(cfg.TRAIN.NET_E)

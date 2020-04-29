@@ -167,16 +167,12 @@ if __name__ == '__main__':
 
     if cfg.TRAIN.FLAG:
         algo.train()
-
-
     else:
         '''generate images from pre-extracted embeddings'''
         if cfg.B_VALIDATION:
             algo.sampling(split_dir)
         else:
-            # TODO: Fix gen_example so it fits new dataset
-            pass
-            # gen_example(vocab.word2idx, algo)
+            gen_example(vocab.word2idx, algo) # generate images for customized captions
 
     end_t = time.time()
     print('Total time for trainig: ', end_t - start_t)

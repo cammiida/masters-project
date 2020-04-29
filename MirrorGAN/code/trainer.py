@@ -231,10 +231,11 @@ class Trainer(object):
             im.save(fullpath)
 
     def train(self):
+        print("Started training with %d GPUS" % torch.cuda.device_count())
         text_encoder, image_encoder, caption_cnn, caption_rnn, netG, netsD, start_epoch = \
             self.build_models()
 
-        # Parallelize netG and netsG models
+        # Parallelize netG and netsD models
         netG = MyDataParallel(netG)
         for i in range(len(netsD)):
             netsD[i] = MyDataParallel(netsD[i])
