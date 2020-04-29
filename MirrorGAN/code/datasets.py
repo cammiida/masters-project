@@ -43,8 +43,6 @@ def get_imgs(img_path, imsize, bbox=None, transform=None, normalize=None):
     return ret
 
 
-
-
 class DataLoader(torch.utils.data.Dataset):
     def __init__(self, root, json, vocab, transform=None):
         self.root = root

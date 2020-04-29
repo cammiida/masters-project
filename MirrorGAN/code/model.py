@@ -90,9 +90,9 @@ class RNN_ENCODER(nn.Module):
         self.n_steps = cfg.TEXT.WORDS_NUM
         self.ntoken = ntoken
         self.ninput = ninput
-        # TODO: Check out warning
-        self.drop_prob = drop_prob
         self.nlayers = nlayers
+        # No dropout if there is only 1 layer
+        self.drop_prob = drop_prob if nlayers > 1 else 0
         self.bidirectional = bidirectional
         self.rnn_type = cfg.RNN_TYPE
         # TODO: Make always bidir?
@@ -155,7 +155,7 @@ class RNN_ENCODER(nn.Module):
         # TODO: See if cap_lens should have been a tensor from dataloader
         # TODO: Check everywhere else where this is done as well
         if isinstance(cap_lens, torch.Tensor):
-            cap_lens = cap_lens.data.toList()
+            cap_lens = cap_lens.data.tolist()
         emb = pack_padded_sequence(emb, cap_lens, batch_first=True)
         # #hidden and memory (num_layers * num_directions, batch, hidden_size):
         # tensor containing the initial hidden state for each element in batch.
@@ -454,6 +454,7 @@ class G_NET(nn.Module):
             :param mask: batch x seq_len
             :return:
         """
+
         fake_imgs = []
         att_maps = []
         '''this is the Conditioning Augmentation'''

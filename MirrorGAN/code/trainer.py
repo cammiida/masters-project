@@ -463,10 +463,11 @@ class Trainer(object):
                         fullpath = '%s_s%d.png' % (s_tmp, k)
                         im.save(fullpath)
 
-
+    # TODO: Add support for new dataset
     def gen_example(self, data_dic):
+        print("data_dic: ", data_dic)
         if cfg.TRAIN.NET_G == '':
-            print('Error: the path for morels is not found!')
+            print('Error: the path for models is not found!')
         else:
             # Build and load the generator
             text_encoder = \
