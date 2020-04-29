@@ -229,8 +229,7 @@ class CNN_ENCODER(nn.Module):
     def forward(self, x):
         features = None
         # --> fixed-size input: batch x 3 x 299 x 299
-        # TODO: Check if align_corners should be False
-        x = nn.Upsample(size=(299, 299), mode='bilinear', align_corners=True)(x)
+        x = nn.Upsample(size=(299, 299), mode='bilinear', align_corners=False)(x)
         # 299 x 299 x 3
         x = self.Conv2d_1a_3x3(x)
         # 149 x 149 x 32
@@ -684,8 +683,7 @@ class CAPTION_CNN(nn.Module):
     def forward(self, images):
         """Extract feature vectors from input images."""
         #print ('image feature size before unsample:', images.size())
-        # TODO: Check if align_corners should be False
-        m = nn.Upsample(size=(224, 224), mode='bilinear', align_corners=True)
+        m = nn.Upsample(size=(224, 224), mode='bilinear', align_corners=False)
         unsampled_images = m(images)
         #print ('image feature size after unsample:', unsampled_images.size())
         features = self.resnet(unsampled_images)
