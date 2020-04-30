@@ -1,6 +1,6 @@
 CONFIG_NAME: 'Train Albert'
 DATASET_NAME: 'COCO'
-DATA_DIR: '../data'
+# DATA_DIR: '../data'
 
 GRAD_CLIP: 5.
 NUM_EPOCHS: 4

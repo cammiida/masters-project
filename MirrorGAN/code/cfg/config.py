@@ -1,23 +1,22 @@
-from __future__ import division
-from __future__ import print_function
-
-import os.path as osp
+from __future__ import division, print_function
 import numpy as np
 from easydict import EasyDict as edict
-
 
 __C = edict()
 cfg = __C
 
-# Dataset name: flowers, birds
-__C.DATASET_NAME = 'birds'
-__C.CONFIG_NAME = ''
+# Dataset name: coco
+__C.DATASET_NAME = 'coco'
+__C.CONFIG_NAME = 'MirrorGAN'
+__C.ROOT_DATA_DIR = '../../data'
+__C.DATASET_SIZE = 'small'
 __C.DATA_DIR = ''
-__C.GPU_ID = 0
-__C.CUDA = True
-__C.WORKERS = 6
-__C.OUTPUT_PATH = ''
-__C.RNN_TYPE = 'LSTM'   # 'GRU'
+__C.MODELS_DIR = '../../models'
+
+__C.DEVICE = 'cpu'
+__C.WORKERS = 8
+__C.OUTPUT_PATH = '../..'
+__C.RNN_TYPE = 'LSTM'
 __C.B_VALIDATION = False
 
 __C.TREE = edict()
@@ -25,17 +24,19 @@ __C.TREE.BRANCH_NUM = 3
 __C.TREE.BASE_SIZE = 64
 
 
-# Training options
+# TRAINING OPTIONS
 __C.TRAIN = edict()
-__C.TRAIN.BATCH_SIZE = 64
+__C.TRAIN.BATCH_SIZE = 32 # TODO: Should be 64, but takes forever to get resources...
 __C.TRAIN.MAX_EPOCH = 600
 __C.TRAIN.SNAPSHOT_INTERVAL = 2000
 __C.TRAIN.DISCRIMINATOR_LR = 2e-4
 __C.TRAIN.GENERATOR_LR = 2e-4
 __C.TRAIN.ENCODER_LR = 2e-4
+__C.TRAIN.DECODER_LR = 4e-4
 __C.TRAIN.RNN_GRAD_CLIP = 0.25
 __C.TRAIN.FLAG = True
-__C.TRAIN.NET_E = ''
+
+__C.TRAIN.NET_E = 'STEM/text_encoder.pth'
 __C.TRAIN.NET_G = ''
 __C.TRAIN.B_NET_D = True
 
@@ -47,15 +48,17 @@ __C.TRAIN.SMOOTH.LAMBDA = 0.0
 __C.TRAIN.SMOOTH.LAMBDA1 = 1.0
 
 
-# Caption_model_settings added by tingting
+# CAPTION MODEL SETTINGS
 __C.CAP = edict()
-__C.CAP.embed_size = 256
+__C.CAP.EMBED_SIZE = 256  # TODO: 768 for BERT?
+
+# TODO: FINISH THIS
 __C.CAP.hidden_size = 512
 __C.CAP.num_layers = 1
 __C.CAP.learning_rate = 0.001
-__C.CAP.caption_cnn_path = ''
-__C.CAP.caption_rnn_path = ''
-
+__C.CAP.CAPTION_CNN_PATH = 'STREAM/cnn_encoder'
+__C.CAP.CAPTION_RNN_PATH = 'STREAM/rnn_decoder'
+__C.CAP.PREPROCESS_DATA = True
 
 # Modal options
 __C.GAN = edict()
@@ -65,13 +68,30 @@ __C.GAN.Z_DIM = 100
 __C.GAN.CONDITION_DIM = 100
 __C.GAN.R_NUM = 2
 __C.GAN.B_ATTENTION = True
+# TODO: Make it DCGAN?
 __C.GAN.B_DCGAN = False
 
 
 __C.TEXT = edict()
-__C.TEXT.CAPTIONS_PER_IMAGE = 10
+__C.TEXT.CAPTIONS_PER_IMAGE = 5
 __C.TEXT.EMBEDDING_DIM = 256
 __C.TEXT.WORDS_NUM = 18
+
+
+__C.VOCAB = edict()
+# Vocab indices
+__C.VOCAB = edict()
+__C.VOCAB.PAD = 0
+__C.VOCAB.START = 1
+__C.VOCAB.END = 2
+__C.VOCAB.UNK = 3
+
+# STREAM COFNIG PARAMS
+__C.STREAM = edict()
+__C.STREAM.GRAD_CLIP = 5.
+__C.STREAM.FROM_CHECKPOINT = False
+__C.STREAM.TRAIN_MODEL = True
+__C.STREAM.VALID_MODEL = False
 
 
 def _merge_a_into_b(a, b):

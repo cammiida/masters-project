@@ -11,7 +11,7 @@ cfg = __C
 
 # Dataset name: COCO
 __C.DATASET_NAME = 'COCO'
-__C.DATASET_SIZE = 'big'
+__C.DATASET_SIZE = 'small'
 __C.CONFIG_NAME = ''
 __C.ROOT_DIR = '../data'
 __C.DATA_DIR = ''
@@ -31,6 +31,8 @@ __C.FROM_CHECKPOINT = False
 __C.TRAIN_MODEL = False
 __C.VALID_MODEL = False
 
+
+__C.VOCAB = edict()
 # Vocab indices
 __C.VOCAB = edict()
 __C.VOCAB.PAD = 0

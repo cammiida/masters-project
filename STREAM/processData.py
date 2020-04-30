@@ -13,6 +13,7 @@ import os
 import pickle
 from collections import Counter
 import nltk
+nltk.download('punkt')
 from PIL import Image
 from pycocotools.coco import COCO
 import argparse
@@ -70,6 +71,7 @@ def build_vocab(json, threshold):
 
 def resize_image(image):
     width, height = image.size
+    # Make square based on the smallest dim
     if width > height:
         left = (width - height) / 2
         right = width - left
@@ -81,10 +83,11 @@ def resize_image(image):
         left = 0
         right = width
     image = image.crop((left, top, right, bottom))
+    # Downsample with high quality (antialias)
     image = image.resize([224, 224], Image.ANTIALIAS)
     return image
 
-def main(caption_path,vocab_path,threshold):
+def main(caption_path, vocab_path, threshold):
     vocab = build_vocab(json=caption_path,threshold=threshold)
     with open(vocab_path, 'wb') as f:
         pickle.dump(vocab, f)
