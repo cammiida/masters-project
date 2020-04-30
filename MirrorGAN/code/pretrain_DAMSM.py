@@ -61,72 +61,79 @@ def train(dataloader, cnn_model, rnn_model, batch_size,
 
         imgs, captions, cap_lens = data
         # skip last batch if it is not full batch size
-        if captions.shape[0] == batch_size:
-            imgs = imgs.to(cfg.DEVICE)
-            captions = captions.to(cfg.DEVICE)
 
-            # words_features: batch_size x nef x 17 x 17
-            # sent_code: batch_size x nef
-            words_features, sent_code = cnn_model(imgs)
-            # --> batch_size x nef x 17*17
-            nef, att_sze = words_features.size(1), words_features.size(2)
-            # words_features = words_features.view(batch_size, nef, -1)
 
-            hidden = rnn_model.init_hidden(batch_size)
-            # words_emb: batch_size x nef x seq_len
-            # sent_emb: batch_size x nef
-            words_emb, sent_emb = rnn_model(captions, cap_lens, hidden)
-            w_loss0, w_loss1, attn_maps = words_loss(words_features, words_emb, labels, cap_lens,
-                                                     class_ids=None, batch_size=cfg.TRAIN.BATCH_SIZE)
-            w_total_loss0 += w_loss0.data
-            w_total_loss1 += w_loss1.data
-            loss = w_loss0 + w_loss1
+        # Don't use the last batch if it is smaller than batch_size
+        if captions.shape[0] != batch_size:
+            break
 
-            s_loss0, s_loss1 = \
-                sent_loss(sent_code, sent_emb, labels, class_ids=None, batch_size=cfg.TRAIN.BATCH_SIZE)
-            loss += s_loss0 + s_loss1
-            s_total_loss0 += s_loss0.data
-            s_total_loss1 += s_loss1.data
-            #
-            loss.backward()
-            #
-            # `clip_grad_norm` helps prevent
-            # the exploding gradient problem in RNNs / LSTMs.
-            torch.nn.utils.clip_grad_norm_(rnn_model.parameters(),
-                                          cfg.TRAIN.RNN_GRAD_CLIP)
-            optimizer.step()
+        imgs = imgs[-1]
 
-            if step % UPDATE_INTERVAL == 0:
-                count = epoch * len(dataloader) + step
+        imgs = imgs.to(cfg.DEVICE)
+        captions = captions.to(cfg.DEVICE)
 
-                s_cur_loss0 = s_total_loss0.item() / UPDATE_INTERVAL
-                s_cur_loss1 = s_total_loss1.item() / UPDATE_INTERVAL
+        # words_features: batch_size x nef x 17 x 17
+        # sent_code: batch_size x nef
+        words_features, sent_code = cnn_model(imgs)
+        # --> batch_size x nef x 17*17
+        nef, att_sze = words_features.size(1), words_features.size(2)
+        # words_features = words_features.view(batch_size, nef, -1)
 
-                w_cur_loss0 = w_total_loss0.item() / UPDATE_INTERVAL
-                w_cur_loss1 = w_total_loss1.item() / UPDATE_INTERVAL
+        hidden = rnn_model.init_hidden(batch_size)
+        # words_emb: batch_size x nef x seq_len
+        # sent_emb: batch_size x nef
+        words_emb, sent_emb = rnn_model(captions, cap_lens, hidden)
+        w_loss0, w_loss1, attn_maps = words_loss(words_features, words_emb, labels, cap_lens,
+                                                 class_ids=None, batch_size=cfg.TRAIN.BATCH_SIZE)
+        w_total_loss0 += w_loss0.data
+        w_total_loss1 += w_loss1.data
+        loss = w_loss0 + w_loss1
 
-                elapsed = time.time() - start_time
-                print('| epoch {:3d} | {:5d}/{:5d} batches | ms/batch {:5.2f} | '
-                      's_loss {:5.2f} {:5.2f} | '
-                      'w_loss {:5.2f} {:5.2f}'
-                      .format(epoch, step, len(dataloader),
-                              elapsed * 1000. / UPDATE_INTERVAL,
-                              s_cur_loss0, s_cur_loss1,
-                              w_cur_loss0, w_cur_loss1))
-                s_total_loss0 = 0
-                s_total_loss1 = 0
-                w_total_loss0 = 0
-                w_total_loss1 = 0
-                start_time = time.time()
-                # attention Maps
-                img_set, _ = \
-                    build_super_images(imgs.cpu(), captions, vocab.idx2word, attn_maps, att_sze)
-                    #build_super_images(imgs[-1].cpu(), captions,
-                    #                   vocab.idx2word, attn_maps, att_sze)
-                if img_set is not None:
-                    im = Image.fromarray(img_set)
-                    fullpath = '%s/attention_maps%d.png' % (image_dir, step)
-                    im.save(fullpath)
+        s_loss0, s_loss1 = \
+            sent_loss(sent_code, sent_emb, labels, class_ids=None, batch_size=cfg.TRAIN.BATCH_SIZE)
+        loss += s_loss0 + s_loss1
+        s_total_loss0 += s_loss0.data
+        s_total_loss1 += s_loss1.data
+        #
+        loss.backward()
+        #
+        # `clip_grad_norm` helps prevent
+        # the exploding gradient problem in RNNs / LSTMs.
+        torch.nn.utils.clip_grad_norm_(rnn_model.parameters(),
+                                      cfg.TRAIN.RNN_GRAD_CLIP)
+        optimizer.step()
+
+        if step % UPDATE_INTERVAL == 0:
+            count = epoch * len(dataloader) + step
+
+            s_cur_loss0 = s_total_loss0.item() / UPDATE_INTERVAL
+            s_cur_loss1 = s_total_loss1.item() / UPDATE_INTERVAL
+
+            w_cur_loss0 = w_total_loss0.item() / UPDATE_INTERVAL
+            w_cur_loss1 = w_total_loss1.item() / UPDATE_INTERVAL
+
+            elapsed = time.time() - start_time
+            print('| epoch {:3d} | {:5d}/{:5d} batches | ms/batch {:5.2f} | '
+                  's_loss {:5.2f} {:5.2f} | '
+                  'w_loss {:5.2f} {:5.2f}'
+                  .format(epoch, step, len(dataloader),
+                          elapsed * 1000. / UPDATE_INTERVAL,
+                          s_cur_loss0, s_cur_loss1,
+                          w_cur_loss0, w_cur_loss1))
+            s_total_loss0 = 0
+            s_total_loss1 = 0
+            w_total_loss0 = 0
+            w_total_loss1 = 0
+            start_time = time.time()
+            # attention Maps
+            img_set, _ = \
+                build_super_images(imgs.cpu(), captions, vocab.idx2word, attn_maps, att_sze)
+                #build_super_images(imgs[-1].cpu(), captions,
+                #                   vocab.idx2word, attn_maps, att_sze)
+            if img_set is not None:
+                im = Image.fromarray(img_set)
+                fullpath = '%s/attention_maps%d.png' % (image_dir, step)
+                im.save(fullpath)
 
     return count
 
