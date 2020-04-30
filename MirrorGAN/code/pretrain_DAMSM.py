@@ -5,8 +5,8 @@ from miscc.utils import build_super_images
 from miscc.losses import sent_loss, words_loss
 from cfg.config import cfg, cfg_from_file
 
-from data_processer import Vocabulary
-from datasets import get_loader
+from datasets import Vocabulary
+from datasets import get_loader, collate_fn
 
 from model import RNN_ENCODER, CNN_ENCODER
 
@@ -263,8 +263,8 @@ def main():
     batch_size = cfg.TRAIN.BATCH_SIZE
 
     # Get data loaders ###################################################
-    train_loader = get_loader('train', vocab, batch_size, transform)
-    val_loader = get_loader('val', vocab, batch_size, transform)
+    train_loader = get_loader('train', vocab, batch_size, transform, collate_fn=collate_fn)
+    val_loader = get_loader('val', vocab, batch_size, transform, collate_fn=collate_fn)
 
     # Train ##############################################################
     text_encoder, image_encoder, labels, start_epoch = build_models()

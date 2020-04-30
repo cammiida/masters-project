@@ -1,8 +1,8 @@
 from __future__ import print_function
 
 from cfg.config import cfg, cfg_from_file
-from datasets import get_loader
-from data_processer import Vocabulary
+from datasets import get_loader, collate_fn
+from datasets import Vocabulary
 from trainer import Trainer
 
 import os
@@ -17,7 +17,6 @@ import numpy as np
 
 import torch
 import torchvision.transforms as transforms
-
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Train a MirrorGAN network')
@@ -159,7 +158,7 @@ if __name__ == '__main__':
 
     # Load data
     train_loader = get_loader('train', vocab, cfg.TRAIN.BATCH_SIZE,
-                              transform=transform)
+                              transform=transform, collate_fn=collate_fn)
     # train(encoder=enc, decoder=dec, decoder_optimizer=dec_optim,
     #      criterion=crit, train_loader=train_loader)
     algo = Trainer(output_dir, train_loader, vocab=vocab)

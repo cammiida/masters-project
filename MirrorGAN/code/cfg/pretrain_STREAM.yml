@@ -1,0 +1,12 @@
+C:
+  CONFIG_NAME: 'STREAM'
+
+  # Model parameters
+  GRAD_CLIP: 5.
+  NUM_EPOCHS: 10
+  BATCH_SIZE: 32
+  DECODER_LR: 0.0004
+
+  FROM_CHECKPOINT: False
+  TRAIN_MODEL: True
+  VALID_MODEL: True
