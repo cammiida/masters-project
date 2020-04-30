@@ -36,9 +36,10 @@ def save_loss_graph(epoch_num, losses, output_dir):
     plt.ylabel("Losses")
     loss_dir = os.path.join(output_dir, 'losses')
     if not os.path.isdir(loss_dir):
+        print("Creating loss directory")
         mkdir_p(loss_dir)
 
-    loss_path = os.path.join(loss_dir, 'epoch', str(epoch_num))
+    loss_path = os.path.join(loss_dir, 'epoch_%d' % epoch_num)
     plt.savefig(loss_path)
 
 ###############
@@ -140,13 +141,13 @@ def train(encoder, decoder, decoder_optimizer, criterion, train_loader):
             'model_state_dict': decoder.state_dict(),
             'optimizer_state_dict': decoder_optimizer.state_dict(),
             'loss': loss,
-        }, os.path.join(output_dir, 'decoder_epoch', str(epoch + 1)))
+        }, os.path.join(output_dir, 'decoder_epoch%s' % str(epoch + 1)))
 
         torch.save({
             'epoch': epoch,
             'model_state_dict': encoder.state_dict(),
             'loss': loss,
-        }, os.path.join(output_dir, 'encoder_epoch', str(epoch + 1)))
+        }, os.path.join(output_dir, 'encoder_epoch%s' % str(epoch + 1)))
 
         print('epoch checkpoint saved')
 
