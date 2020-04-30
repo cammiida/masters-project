@@ -1,0 +1,17 @@
+CONFIG_NAME: 'Train Albert'
+DATASET_NAME: 'COCO'
+# DATA_DIR: '../data'
+
+GRAD_CLIP: 5.
+NUM_EPOCHS: 4
+BATCH_SIZE: 32
+DECODER_LR: 0.0004
+
+# if both are false them model = baseline
+
+GLOVE_MODEL: False
+ALBERT_MODEL: True
+
+FROM_CHECKPOINT: False
+TRAIN_MODEL: True
+VALID_MODEL: False

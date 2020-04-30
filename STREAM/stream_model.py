@@ -1,57 +1,16 @@
 import pickle
-import torch.nn as nn
 import torch
-from transformers import AlbertTokenizer, AlbertModel, AlbertForMaskedLM, BertTokenizer, BertModel, BertForMaskedLM
-import imageio
-from torchtext.vocab import Vectors, GloVe
+import torch.nn as nn
 import torchvision.models as models
 
-
-###################
-# START Parameters
-###################
-
-# hyperparams
-grad_clip = 5.
-num_epochs = 4
-batch_size = 32
-decoder_lr = 0.0004
-
-# if both are false them model = baseline
-
-glove_model = False
-bert_model = False
-
-from_checkpoint = True
-train_model = False
-valid_model = True
-eval = True
-
-###################
-# END Parameters
-###################
-
-# OPTIONAL: if you want to have more information on what's happening under the hood, activate the logger as follows
-import logging
-logging.basicConfig(level=logging.INFO)
+from cfg.config import cfg, cfg_from_file
+from transformers import AlbertTokenizer, AlbertModel, BertTokenizer, BertModel
 
 # Device configuration
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-# Load pretrained model tokenizer (vocabulary)
-tokenizer = AlbertTokenizer.from_pretrained('albert-base-v2')
-#tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
-
-# Load pre-trained model (weights)
-model = AlbertModel.from_pretrained('albert-base-v2')
-
-# Load GloVe
-glove_vectors = pickle.load(open('glove.6B/glove_words.pkl', 'rb'))
-glove_vectors = torch.tensor(glove_vectors)
-
-
 #####################
-# Encoder RASNET CNN
+# Encoder RESNET CNN
 #####################
 class Encoder(nn.Module):
     def __init__(self):
@@ -71,22 +30,32 @@ class Encoder(nn.Module):
 # Attention Decoder
 ####################
 class Decoder(nn.Module):
-    def __init__(self, vocab_size, use_glove, use_bert):
+    def __init__(self, vocab, use_glove, use_albert):
         super(Decoder, self).__init__()
+        self.vocab = vocab
         self.encoder_dim = 2048
         self.attention_dim = 512
-        self.use_bert = use_bert
+        self.use_albert = use_albert
 
         if use_glove:
             self.embed_dim = 300
-        elif use_bert:
+        elif use_albert:
+            # TODO: Should this be 128 for Albert?
             self.embed_dim = 768
+
+            # Load pretrained model tokenizer (vocabulary)
+            #self.tokenizer = AlbertTokenizer.from_pretrained('albert-base-v2')
+            self.tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
+            # Load pre-trained model (weights)
+            #self.model = AlbertModel.from_pretrained('albert-base-v2').to(device)
+            self.model = BertModel.from_pretrained('bert-base-uncased').to(device)
+            self.model.eval()
         else:
             self.embed_dim = 512
 
         self.decoder_dim = 512
-        self.vocab_size = vocab_size
-        self.dropout = 0.5
+        self.vocab_size = len(vocab)
+        self.dropout_rate = 0.5
 
         # soft attention
         self.enc_att = nn.Linear(2048, 512)
@@ -96,7 +65,7 @@ class Decoder(nn.Module):
         self.softmax = nn.Softmax(dim=1)
 
         # decoder layers
-        self.dropout = nn.Dropout(p=self.dropout)
+        self.dropout = nn.Dropout(self.dropout_rate)
         self.decode_step = nn.LSTMCell(self.embed_dim + self.encoder_dim, self.decoder_dim, bias=True)
         self.h_lin = nn.Linear(self.encoder_dim, self.decoder_dim)
         self.c_lin = nn.Linear(self.encoder_dim, self.decoder_dim)
@@ -104,12 +73,15 @@ class Decoder(nn.Module):
         self.sigmoid = nn.Sigmoid()
         self.fc = nn.Linear(self.decoder_dim, self.vocab_size)
 
-        if not use_bert:
-            self.embedding = nn.Embedding(vocab_size, self.embed_dim)
+        if not use_albert:
+            self.embedding = nn.Embedding(self.vocab_size, self.embed_dim)
             self.embedding.weight.data.uniform_(-0.1, 0.1)
 
             # load Glove embeddings
             if use_glove:
+                glove_vectors = pickle.load(open('../data/glove.6B/glove_words.pkl', 'rb'))
+                glove_vectors = torch.tensor(glove_vectors)
+
                 self.embedding.weight = nn.Parameter(glove_vectors)
 
             # always fine-tune embeddings (even with GloVe)
@@ -126,32 +98,40 @@ class Decoder(nn.Module):
         encoder_out = encoder_out.view(batch_size, -1, encoder_dim)
         num_pixels = encoder_out.size(1)
 
-        # load bert or regular embeddings
-        if not self.use_bert:
+        embeddings = []
+        # load albert or regular embeddings
+        if not self.use_albert:
             embeddings = self.embedding(encoded_captions)
-        elif self.use_bert:
-            embeddings = []
+        elif self.use_albert:
+            tokenizer = self.tokenizer
+            model = self.model
+
             for cap_idx in encoded_captions:
                 # padd caption to correct size
                 while len(cap_idx) < max_dec_len:
-                    cap_idx.append(PAD)
+                    cap_idx.append(cfg.VOCAB.PAD)
 
-                cap = ' '.join([vocab.idx2word[word_idx.item()] for word_idx in cap_idx])
+                cap = ' '.join([self.vocab.idx2word[word_idx.item()] for word_idx in cap_idx])
                 cap = u'[CLS] '+cap
+
 
                 tokenized_cap = tokenizer.tokenize(cap)
                 indexed_tokens = tokenizer.convert_tokens_to_ids(tokenized_cap)
                 tokens_tensor = torch.tensor([indexed_tokens]).to(device)
 
                 with torch.no_grad():
-                    encoded_layers, _ = AlbertModel(tokens_tensor)
+                    encoded_layers, _ = model(tokens_tensor)
 
-                # Remove all dims with dim_size = 0 in dim 11
-                albert_embedding = encoded_layers[11].squeeze(0)
+
+                # TODO: Figure out why is wasn't "encoded_layers[11].squeeze(0)"
+                # Maybe the model used previously had 12 layers, and so only the last layer was used..
+                # Now, remove batch axis
+                albert_embedding = encoded_layers.squeeze(0)
 
                 split_cap = cap.split()
                 tokens_embedding = []
                 j = 0
+
 
                 for full_token in split_cap:
                     curr_token = ''
@@ -160,12 +140,38 @@ class Decoder(nn.Module):
                         token = tokenized_cap[i+j]
                         piece_embedding = albert_embedding[i+j]
 
+                        '''
+                        # ALBERT
+                        # full token
+                        if token.startswith('_') or token.startswith('<') or token.startswith('['):
+
+                            if token.replace('_', '') == full_token and curr_token == '':
+                                tokens_embedding.append(piece_embedding)
+                                j += 1
+                                break
+
+                        else: # partial token
+                            x += 1
+
+                            if curr_token == '':
+                                tokens_embedding.append(piece_embedding)
+                                curr_token += token
+                            else:
+                                tokens_embedding[-1] = torch.add(tokens_embedding[-1], piece_embedding)
+                                curr_token += token
+
+                                if curr_token == full_token:
+                                    j += x
+                                    break
+
+                        '''
+                        # BERT
                         # full token
                         if token == full_token and curr_token == '':
                             tokens_embedding.append(piece_embedding)
                             j += 1
                             break
-                        else: # partial token
+                        else:  # partial token
                             x += 1
 
                             if curr_token == '':
@@ -175,9 +181,10 @@ class Decoder(nn.Module):
                                 tokens_embedding[-1] = torch.add(tokens_embedding[-1], piece_embedding)
                                 curr_token += token.replace('#', '')
 
-                                if curr_token == full_token:
+                                if curr_token == full_token:  # end of partial
                                     j += x
                                     break
+
 
                 cap_embedding = torch.stack(tokens_embedding)
                 embeddings.append(cap_embedding)
@@ -193,13 +200,26 @@ class Decoder(nn.Module):
         predictions = torch.zeros(batch_size, max_dec_len, vocab_size).to(device)
         alphas = torch.zeros(batch_size, max_dec_len, num_pixels).to(device)
 
+        for t in range(max(dec_len)):
+            batch_size_t = sum([l > t for l in dec_len])
 
-# vocab indices
-PAD = 0
-START = 1
-END = 2
-UNK = 3
+            # soft-attention
+            enc_att = self.enc_att(encoder_out[:batch_size_t])
+            dec_att = self.dec_att(h[:batch_size_t])
+            att = self.att(self.relu(enc_att + dec_att.unsqueeze(1))).squeeze(2)
+            alpha = self.softmax(att)
+            attention_weighted_encoding = (encoder_out[:batch_size_t] * alpha.unsqueeze(2)).sum(dim=1)
 
-# Load vocabulary
-with open('data/vocab.pkl', 'rb') as f:
-    vocab = pickle.load(f)
+            gate = self.sigmoid(self.f_beta(h[:batch_size_t]))
+            attention_weighted_encoding = gate * attention_weighted_encoding
+
+            batch_embeds = embeddings[:batch_size_t, t, :]
+            cat_val = torch.cat([batch_embeds.double(), attention_weighted_encoding.double()], dim=1)
+
+            h, c = self.decode_step(cat_val.float(), (h[:batch_size_t].float(), c[:batch_size_t].float()))
+            preds = self.fc(self.dropout(h))
+            predictions[:batch_size_t, t, :] = preds
+            alphas[:batch_size_t, t, :] = alpha
+
+        # preds, sorted capts, dec lens, attention weights
+        return predictions, encoded_captions, dec_len, alphas
