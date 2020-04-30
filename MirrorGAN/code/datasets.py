@@ -111,21 +111,6 @@ def collate_fn(batch):
     return images, targets, lengths
 
 
-def STREAM_collate_fn(batch):
-    batch.sort(key=lambda x: len(x[1]), reverse=True)
-    images, captions = zip(*batch)
-
-    images = torch.stack(images, 0)
-
-    lengths = [len(cap) for cap in captions]
-    targets = torch.zeros(len(captions), max(lengths)).long()
-    for i, cap in enumerate(captions):
-        end = lengths[i]
-        targets[i, :end] = cap[:end]
-
-    return images, targets, lengths
-
-
 def get_loader(method, vocab, batch_size, transform, norm=None):
     root_dir = cfg.DATA_DIR
     root = None

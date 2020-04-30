@@ -10,6 +10,7 @@ import numpy as np
 
 from cfg.config import cfg
 from STREAM.data_processer import print_sample
+from miscc.utils import mkdir_p
 
 # loss
 class loss_obj(object):
@@ -17,20 +18,14 @@ class loss_obj(object):
         self.avg = 0.
         self.sum = 0.
         self.count = 0.
-        self.losses = []
-
-    def add_to_loss_list(self, loss):
-        self.losses.append(loss)
 
     def update(self, val, n=1):
         self.sum += val * n
         self.count += n
         self.avg = self.sum / self.count
 
-    def get_losses(self):
-        return self.losses
 
-def save_loss_graph(epoch_num, batch_num, losses):
+def save_loss_graph(epoch_num, losses, output_dir):
     print("Epoch: ", epoch_num)
     x_values = range(1, len(losses) + 1)
     y_values = losses
@@ -39,10 +34,12 @@ def save_loss_graph(epoch_num, batch_num, losses):
     x_label = "Batch number in epoch %d" % epoch_num
     plt.xlabel(x_label)
     plt.ylabel("Losses")
-    date = datetime.now().strftime('%y-%m-%d')
-    if not os.path.isdir('./checkpoints/losses/%s' % date):
-        os.mkdir('./checkpoints/losses/%s' % date)
-    plt.savefig('./checkpoints/losses/%s/epoch_%s_batch_%s' % (date, epoch_num, batch_num))
+    loss_dir = os.path.join(output_dir, 'losses')
+    if not os.path.isdir(loss_dir):
+        mkdir_p(loss_dir)
+
+    loss_path = os.path.join(loss_dir, 'epoch', str(epoch_num))
+    plt.savefig(loss_path)
 
 ###############
 # Train model
@@ -59,6 +56,8 @@ def train(encoder, decoder, decoder_optimizer, criterion, train_loader):
 
     # TODO: Add scheduler? (See torch.optim how to adjust learning rate)
     print("Started training...")
+
+    loss_list = []
     for epoch in tqdm(range(cfg.TRAIN.MAX_EPOCH)):
 
         # Set the models in training mode
@@ -74,6 +73,10 @@ def train(encoder, decoder, decoder_optimizer, criterion, train_loader):
             imgs = imgs[-1]
             imgs = encoder(imgs.to(cfg.DEVICE))
             caps = caps.to(cfg.DEVICE)
+
+            # Skip last batch if it doesn't fit the batch size
+            if len(imgs) != cfg.TRAIN.BATCH_SIZE:
+                break
 
             # Packing to optimize computations
             scores, caps_sorted, decode_lengths, alphas = decoder(imgs, caps, caplens)
@@ -98,7 +101,7 @@ def train(encoder, decoder, decoder_optimizer, criterion, train_loader):
             decoder_optimizer.step()
 
             losses.update(loss.item(), sum(decode_lengths))
-            losses.add_to_loss_list(loss.item())
+            loss_list.append(loss.item())
 
 
             # TODO: Set this to 100?
@@ -107,8 +110,6 @@ def train(encoder, decoder, decoder_optimizer, criterion, train_loader):
                 print('epoch ' + str(epoch + 1) + '/4 ,Batch ' + str(i) + '/' + str(num_batches) + ' loss:' + str(
                     losses.avg))
 
-                # save losses to graph
-                save_loss_graph(epoch + 1, i + 1, losses.get_losses())
 
                 # adjust learning rate (create condition for this)
                 for param_group in decoder_optimizer.param_groups:
@@ -130,6 +131,9 @@ def train(encoder, decoder, decoder_optimizer, criterion, train_loader):
                 }, os.path.join(output_dir, 'encoder_mid'))
 
                 print('model saved')
+
+        # save losses to graph
+        save_loss_graph(epoch_num=epoch + 1, losses=loss_list, output_dir=output_dir)
 
         torch.save({
             'epoch': epoch,

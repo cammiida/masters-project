@@ -91,7 +91,7 @@ __C.STREAM = edict()
 __C.STREAM.GRAD_CLIP = 5.
 __C.STREAM.FROM_CHECKPOINT = False
 __C.STREAM.TRAIN_MODEL = True
-__C.STREAM.VALID_MODEL = True
+__C.STREAM.VALID_MODEL = False
 
 
 def _merge_a_into_b(a, b):
