@@ -482,8 +482,6 @@ class G_NET(nn.Module):
             if att2 is not None:
                 att_maps.append(att2)
 
-        print("\tIn G_NET Model: input size", z_code.size(), "of batch size: ", cfg.TRAIN.BATCH_SIZE)
-
         return fake_imgs, att_maps, mu, logvar
 
 
