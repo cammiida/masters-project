@@ -325,8 +325,8 @@ class Trainer(object):
                                           captions, cap_lens, epoch, name='average')
                     load_params(netG, backup_para)
 
-                D_losses.append(errD.data.item())
-                G_losses.append(kl_loss.data.item())
+                D_losses.append(errD_total.data.item())
+                G_losses.append(errG_total.data.item())
             end_t = time.time()
 
             print('''[%d/%d][%d]
