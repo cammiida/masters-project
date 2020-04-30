@@ -14,9 +14,8 @@ from STREAM.trainer import train, validate
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Train a STREAM network')
-    parser.add_argument('--cfg', dest='cfg_file',
-                        help='optional config file',
-                        default=None, type=str)
+    parser.add_argument('--cfg', dest='cfg_file', default='cfg/pretrain_STREAM.yml',
+                        help='optional config file', type=str)
     parser.add_argument('--data_size', dest='data_size', type=str, default='')
     parser.add_argument('--root_dir', dest='root_dir', type=str, default='')
     return parser.parse_args()
