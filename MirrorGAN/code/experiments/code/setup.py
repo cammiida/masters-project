@@ -4,7 +4,7 @@ import pickle
 import nltk
 
 from cfg.config import cfg
-from data_processer import Vocabulary
+from datasets import Vocabulary
 
 from model import G_NET, RNN_ENCODER
 import numpy as np

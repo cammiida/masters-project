@@ -9,7 +9,6 @@ import nltk
 import numpy as np
 from PIL import Image
 from pycocotools.coco import COCO
-from collections import Counter
 
 
 def get_imgs(img_path, imsize, bbox=None, transform=None, normalize=None):
@@ -44,15 +43,18 @@ def get_imgs(img_path, imsize, bbox=None, transform=None, normalize=None):
 
 
 class DataLoader(torch.utils.data.Dataset):
-    def __init__(self, root, json, vocab, transform=None):
+    def __init__(self, root, json, vocab, transform=None, norm=None):
         self.root = root
         self.coco = COCO(json)
         self.ids = list(self.coco.anns.keys())
         self.vocab = vocab
         self.transform = transform
-        self.norm = transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
+        if norm is not None:
+            self.norm = norm
+        else:
+            self.norm = transforms.Compose([
+                transforms.ToTensor(),
+                transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
         self.imsize = []
         base_size = cfg.TREE.BASE_SIZE
         for i in range(cfg.TREE.BRANCH_NUM):
@@ -109,7 +111,7 @@ def collate_fn(batch):
     return images, targets, lengths
 
 
-def get_loader(method, vocab, batch_size, transform):
+def get_loader(method, vocab, batch_size, transform, norm=None):
     root_dir = cfg.DATA_DIR
     root = None
     json = None
@@ -122,7 +124,7 @@ def get_loader(method, vocab, batch_size, transform):
         json = os.path.join(root_dir, 'annotations/captions_val2014.json')
 
 
-    coco = DataLoader(root=root, json=json, vocab=vocab, transform=transform)
+    coco = DataLoader(root=root, json=json, vocab=vocab, transform=transform, norm=norm)
 
     data_loader = torch.utils.data.DataLoader(dataset=coco,
                                               batch_size=batch_size,
@@ -133,8 +135,25 @@ def get_loader(method, vocab, batch_size, transform):
     return data_loader
 
 
+class Vocabulary(object):
+    def __init__(self):
+        self.word2idx = {}
+        self.idx2word = {}
+        self.idx = 0
 
+    def add_word(self, word):
+        if not word in self.word2idx:
+            self.word2idx[word] = self.idx
+            self.idx2word[self.idx] = word
+            self.idx += 1
 
+    def __call__(self, word):
+        if not word in self.word2idx:
+            return self.word2idx['<unk>']
+        return self.word2idx[word]
+
+    def __len__(self):
+        return len(self.word2idx)
 
 
 

@@ -5,8 +5,8 @@ from miscc.utils import build_super_images
 from miscc.losses import sent_loss, words_loss
 from cfg.config import cfg, cfg_from_file
 
-from data_processer import Vocabulary
-from datasets import get_loader
+from datasets import Vocabulary
+from datasets import get_loader, collate_fn
 
 from model import RNN_ENCODER, CNN_ENCODER
 
@@ -40,28 +40,6 @@ def parse_args():
     parser.add_argument('--data_size', dest='data_size', type=str, default='')
     parser.add_argument('--manual_seed', type=int, help='manual seed')
     return parser.parse_args()
-
-# TODO: Make sure the other collate_fn works before this is deleted
-'''
-def collate_fn(batch):
-    # Sort batch by length of captions
-    batch.sort(key=lambda x: len(x[1]), reverse=True)
-    # create separate tuples of images and captions from batch
-    images, captions = zip(*batch)
-    # Extract last image
-    images = [img[-1][-1] for img in images]
-    # make images a torch tensor instead of tuple
-    images = torch.stack(images, 0)
-    # print("images as torch.stack: ", images, "size: ", images.size())
-
-    lengths = [len(cap) for cap in captions]
-    targets = torch.zeros(len(captions), max(lengths)).long()
-    for i, cap in enumerate(captions):
-        end = lengths[i]
-        targets[i, :end] = cap[:end]
-
-    return images, targets, lengths
-'''
 
 
 def train(dataloader, cnn_model, rnn_model, batch_size,

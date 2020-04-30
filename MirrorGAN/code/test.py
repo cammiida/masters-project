@@ -1,5 +1,5 @@
 from datasets import get_loader
-from data_processer import Vocabulary
+from datasets import Vocabulary, collate_fn
 from trainer import Trainer
 from model import Encoder, Decoder
 from cfg.config import cfg, cfg_from_file
@@ -50,16 +50,16 @@ vocab = pickle.load(f)
 caption_rnn = Decoder(vocab)
 caption_cnn = Encoder()
 
-rnn_checkpoint = torch.load('../../models/STREAM/small/rnn_decoder', map_location=lambda storage, log: storage)
+rnn_checkpoint = torch.load('../../models/small/STREAM/rnn_decoder', map_location=lambda storage, log: storage)
 caption_rnn.load_state_dict(rnn_checkpoint['model_state_dict'])
 
-cnn_checkpoint = torch.load('../../models/STREAM/small/cnn_encoder', map_location=lambda storage, loc: storage)
+cnn_checkpoint = torch.load('../../models/small/STREAM/cnn_encoder', map_location=lambda storage, loc: storage)
 caption_cnn.load_state_dict(cnn_checkpoint['model_state_dict'])
 
 
 
 train_loader = get_loader('train', vocab, batch_size,
-                          transform=transform)
+                          transform=transform, collate_fn=collate_fn)
 
 
 device = torch.device('cpu')

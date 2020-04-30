@@ -32,6 +32,7 @@ __C.TRAIN.SNAPSHOT_INTERVAL = 2000
 __C.TRAIN.DISCRIMINATOR_LR = 2e-4
 __C.TRAIN.GENERATOR_LR = 2e-4
 __C.TRAIN.ENCODER_LR = 2e-4
+__C.TRAIN.DECODER_LR = 4e-4
 __C.TRAIN.RNN_GRAD_CLIP = 0.25
 __C.TRAIN.FLAG = True
 
@@ -57,7 +58,7 @@ __C.CAP.num_layers = 1
 __C.CAP.learning_rate = 0.001
 __C.CAP.CAPTION_CNN_PATH = 'STREAM/cnn_encoder'
 __C.CAP.CAPTION_RNN_PATH = 'STREAM/rnn_decoder'
-
+__C.CAP.PREPROCESS_DATA = True
 
 # Modal options
 __C.GAN = edict()
@@ -84,6 +85,13 @@ __C.VOCAB.PAD = 0
 __C.VOCAB.START = 1
 __C.VOCAB.END = 2
 __C.VOCAB.UNK = 3
+
+# STREAM COFNIG PARAMS
+__C.STREAM = edict()
+__C.STREAM.GRAD_CLIP = 5.
+__C.STREAM.FROM_CHECKPOINT = False
+__C.STREAM.TRAIN_MODEL = True
+__C.STREAM.VALID_MODEL = False
 
 
 def _merge_a_into_b(a, b):
