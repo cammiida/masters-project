@@ -6,18 +6,20 @@ import os
 import pprint
 import argparse
 
-from cfg.config import cfg
-from datasets import get_loader, STREAM_collate_fn
+from cfg.config import cfg, cfg_from_file
+from datasets import get_loader
 from STREAM.data_processer import init_model, process_data
 from STREAM.trainer import train, validate
 
+from datasets import Vocabulary
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Train a STREAM network')
     parser.add_argument('--cfg', dest='cfg_file', default='cfg/pretrain_STREAM.yml',
                         help='optional config file', type=str)
     parser.add_argument('--data_size', dest='data_size', type=str, default='')
-    parser.add_argument('--root_dir', dest='root_dir', type=str, default='')
+    parser.add_argument('--root_data_dir', dest='root_data_dir', type=str, default='')
+    parser.add_argument('--preprocess', dest='preprocess_data', type=bool, default=False)
     return parser.parse_args()
 
 
@@ -40,17 +42,17 @@ def pretrain_STREAM():
     # Run training/validation
     ######################
 
-    if cfg.TRAIN_MODEL:
+    if cfg.STREAM.TRAIN_MODEL:
         # Load data
-        train_loader = get_loader('train', vocab, cfg.BATCH_SIZE,
-                                  transform=transform, norm=norm, collate_fn=STREAM_collate_fn)
+        train_loader = get_loader('train', vocab, cfg.TRAIN.BATCH_SIZE,
+                                  transform=transform, norm=norm)
         train(encoder=enc, decoder=dec, decoder_optimizer=dec_optim,
               criterion=crit, train_loader=train_loader)
 
-    if cfg.VALID_MODEL:
+    if cfg.STREAM.VALID_MODEL:
         # Load data
-        val_loader = get_loader('val', vocab, cfg.BATCH_SIZE,
-                                transform=transform, norm=norm, collate_fn=STREAM_collate_fn)
+        val_loader = get_loader('val', vocab, cfg.TRAIN.BATCH_SIZE,
+                                transform=transform, norm=norm)
         # Don't caluclate gradients for validation
         with torch.no_grad():
             validate(encoder=enc, decoder=dec, criterion=crit, val_loader=val_loader)
@@ -59,18 +61,25 @@ def pretrain_STREAM():
 def set_config_params():
     args = parse_args()
 
-    if args.root_dir != '':
-        cfg.ROOT_DIR = args.ROOT_DIR
+    args = parse_args()
+    if args.cfg_file != '':
+        cfg_from_file(args.cfg_file)
+
+    if args.root_data_dir != '':
+        cfg.ROOT_DIR = args.ROOT_DATA_DIR
     if args.data_size != '':
         cfg.DATASET_SIZE = args.data_size
 
-    cfg.DATA_DIR = os.path.join(cfg.ROOT_DIR, cfg.DATASET_SIZE)
+    cfg.DATA_DIR = os.path.join(cfg.ROOT_DATA_DIR, cfg.DATASET_SIZE)
     print('Using config:')
     pprint.pprint(cfg)
 
     # Set device
     if torch.cuda.is_available():
         cfg.DEVICE = torch.device('cuda')
+
+    if args.preprocess_data is not None:
+        cfg.CAP.PREPROCESS_DATA = args.preprocess_data
 
 if __name__ == '__main__':
     set_config_params()
@@ -83,7 +92,8 @@ if __name__ == '__main__':
     vocab_path = os.path.join(cfg.DATA_DIR, 'vocab.pkl')
     threshold = 5
 
-    process_data(caption_path, vocab_path, threshold)
+    if cfg.CAP.PREPROCESS_DATA:
+        process_data(caption_path, vocab_path, threshold)
 
     pretrain_STREAM()
 

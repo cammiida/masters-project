@@ -1,15 +1,14 @@
 import os
-
 import torch
 from tqdm import tqdm
 from datetime import datetime
-
-from cfg.config import cfg
+import dateutil.tz
 
 from torch.nn.utils.rnn import pack_padded_sequence
 import matplotlib.pyplot as plt
 import numpy as np
 
+from cfg.config import cfg
 from STREAM.data_processer import print_sample
 
 # loss
@@ -50,10 +49,17 @@ def save_loss_graph(epoch_num, batch_num, losses):
 ###############
 
 def train(encoder, decoder, decoder_optimizer, criterion, train_loader):
+    now = datetime.now(dateutil.tz.tzlocal())
+    timestamp = now.strftime('%Y_%m_%d_%H_%M_%S')
+    output_dir = '%s/output/%s/%s_%s_%s' % \
+                 (cfg.OUTPUT_PATH, cfg.DATASET_SIZE,
+                  cfg.DATASET_NAME, cfg.CONFIG_NAME, timestamp)
+
+    print('output_dir: ', output_dir)
 
     # TODO: Add scheduler? (See torch.optim how to adjust learning rate)
     print("Started training...")
-    for epoch in tqdm(range(cfg.NUM_EPOCHS)):
+    for epoch in tqdm(range(cfg.TRAIN.MAX_EPOCH)):
 
         # Set the models in training mode
         decoder.train()
@@ -64,7 +70,8 @@ def train(encoder, decoder, decoder_optimizer, criterion, train_loader):
 
         # Loop through each batch
         for i, (imgs, caps, caplens) in enumerate(tqdm(train_loader)):
-
+            # Extract imgs from list
+            imgs = imgs[-1]
             imgs = encoder(imgs.to(cfg.DEVICE))
             caps = caps.to(cfg.DEVICE)
 
@@ -86,7 +93,7 @@ def train(encoder, decoder, decoder_optimizer, criterion, train_loader):
             for group in decoder_optimizer.param_groups:
                 for param in group['params']:
                     if param.grad is not None:
-                        param.grad.data.clamp_(-cfg.GRAD_CLIP, cfg.GRAD_CLIP)
+                        param.grad.data.clamp_(-cfg.STREAM.GRAD_CLIP, cfg.STREAM.GRAD_CLIP)
 
             decoder_optimizer.step()
 
@@ -114,13 +121,13 @@ def train(encoder, decoder, decoder_optimizer, criterion, train_loader):
                     'model_state_dict': decoder.state_dict(),
                     'optimizer_state_dict': decoder_optimizer.state_dict(),
                     'loss': loss,
-                }, './checkpoints/decoder_mid')
+                }, os.path.join(output_dir, 'decoder_mid'))
 
                 torch.save({
                     'epoch': epoch,
                     'model_state_dict': encoder.state_dict(),
                     'loss': loss,
-                }, './checkpoints/encoder_mid')
+                }, os.path.join(output_dir, 'encoder_mid'))
 
                 print('model saved')
 
@@ -129,13 +136,13 @@ def train(encoder, decoder, decoder_optimizer, criterion, train_loader):
             'model_state_dict': decoder.state_dict(),
             'optimizer_state_dict': decoder_optimizer.state_dict(),
             'loss': loss,
-        }, './checkpoints/decoder_epoch' + str(epoch + 1))
+        }, os.path.join(output_dir, 'decoder_epoch', str(epoch + 1)))
 
         torch.save({
             'epoch': epoch,
             'model_state_dict': encoder.state_dict(),
             'loss': loss,
-        }, './checkpoints/encoder_epoch' + str(epoch + 1))
+        }, os.path.join(output_dir, 'encoder_epoch', str(epoch + 1)))
 
         print('epoch checkpoint saved')
 

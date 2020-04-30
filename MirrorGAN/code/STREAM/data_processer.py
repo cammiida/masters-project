@@ -20,8 +20,8 @@ def init_model(vocabulary):
 
     encoder = Encoder().to(cfg.DEVICE)
     decoder = Decoder(vocab=vocabulary).to(cfg.DEVICE)
-
-    if cfg.FROM_CHECKPOINT:
+    # TODO: Fix from checkpoint paths
+    if cfg.STREAM.FROM_CHECKPOINT:
 
         if torch.cuda.is_available():
             if cfg.ALBERT_MODEL:
@@ -51,12 +51,12 @@ def init_model(vocabulary):
                 decoder_checkpoint = torch.load('checkpoints/decoder_baseline', map_location='cpu')
 
         encoder.load_state_dict(encoder_checkpoint['model_state_dict'])
-        decoder_optimizer = torch.optim.Adam(params=decoder.parameters(), lr=cfg.DECODER_LR)
+        decoder_optimizer = torch.optim.Adam(params=decoder.parameters(), lr=cfg.TRAIN.DECODER_LR)
         decoder.load_state_dict(decoder_checkpoint['model_state_dict'])
         decoder_optimizer.load_state_dict(decoder_checkpoint['optimizer_state_dict'])
 
     else:
-        decoder_optimizer = torch.optim.Adam(params=decoder.parameters(), lr=cfg.DECODER_LR)
+        decoder_optimizer = torch.optim.Adam(params=decoder.parameters(), lr=cfg.TRAIN.DECODER_LR)
 
     return encoder, decoder, decoder_optimizer
 

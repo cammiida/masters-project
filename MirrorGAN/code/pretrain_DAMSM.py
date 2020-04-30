@@ -263,8 +263,8 @@ def main():
     batch_size = cfg.TRAIN.BATCH_SIZE
 
     # Get data loaders ###################################################
-    train_loader = get_loader('train', vocab, batch_size, transform, collate_fn=collate_fn)
-    val_loader = get_loader('val', vocab, batch_size, transform, collate_fn=collate_fn)
+    train_loader = get_loader('train', vocab, batch_size, transform)
+    val_loader = get_loader('val', vocab, batch_size, transform)
 
     # Train ##############################################################
     text_encoder, image_encoder, labels, start_epoch = build_models()

@@ -157,8 +157,7 @@ if __name__ == '__main__':
 
 
     # Load data
-    train_loader = get_loader('train', vocab, cfg.TRAIN.BATCH_SIZE,
-                              transform=transform, collate_fn=collate_fn)
+    train_loader = get_loader('train', vocab, cfg.TRAIN.BATCH_SIZE, transform=transform)
     # train(encoder=enc, decoder=dec, decoder_optimizer=dec_optim,
     #      criterion=crit, train_loader=train_loader)
     algo = Trainer(output_dir, train_loader, vocab=vocab)

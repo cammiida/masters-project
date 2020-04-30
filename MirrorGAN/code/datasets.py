@@ -126,7 +126,7 @@ def STREAM_collate_fn(batch):
     return images, targets, lengths
 
 
-def get_loader(method, vocab, batch_size, transform, norm=None, collate_fn=None):
+def get_loader(method, vocab, batch_size, transform, norm=None):
     root_dir = cfg.DATA_DIR
     root = None
     json = None
