@@ -104,6 +104,9 @@ def build_vocab(json):
         tokens = nltk.tokenize.word_tokenize(caption.lower())
         counter.update(tokens)
 
+        if (i + 1) % 1000 == 0 or i == len(ids)-1:
+            print("[{}/{}] Tokenized the captions.".format(i + 1, len(ids)))
+
     # omit non-frequent words
     words = [word for word, cnt in counter.items() if cnt >= cfg.STREAM.THRESHOLD]
 
