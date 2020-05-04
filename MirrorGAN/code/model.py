@@ -86,7 +86,6 @@ class RNN_ENCODER(nn.Module):
     def __init__(self, ntoken, ninput=300, drop_prob=0.5,
                  nhidden=128, nlayers=1, bidirectional=True):
         super(RNN_ENCODER, self).__init__()
-        # TODO: Check what all these are
         self.n_steps = cfg.TEXT.WORDS_NUM
         self.ntoken = ntoken
         self.ninput = ninput
@@ -94,6 +93,7 @@ class RNN_ENCODER(nn.Module):
         # No dropout if there is only 1 layer
         self.drop_prob = drop_prob if nlayers > 1 else 0
         self.bidirectional = bidirectional
+        # TODO: Make this always LSTM?
         self.rnn_type = cfg.RNN_TYPE
         # TODO: Make always bidir?
         if bidirectional:
@@ -152,8 +152,6 @@ class RNN_ENCODER(nn.Module):
         emb = self.drop(self.encoder(captions))
         #
         # Returns: a PackedSequence object
-        # TODO: See if cap_lens should have been a tensor from dataloader
-        # TODO: Check everywhere else where this is done as well
         if isinstance(cap_lens, torch.Tensor):
             cap_lens = cap_lens.data.tolist()
         emb = pack_padded_sequence(emb, cap_lens, batch_first=True)
@@ -307,8 +305,6 @@ class CA_NET(nn.Module):
     def reparametrize(self, mu, logvar):
         std = logvar.mul(0.5).exp_()
         eps = torch.FloatTensor(std.size()).normal_().to(cfg.DEVICE)
-        # TODO: Anything else needed instead of Variable?
-        #eps = Variable(eps)
         return eps.mul(std).add_(mu)
 
     def forward(self, text_embedding):
@@ -768,7 +764,6 @@ class Decoder(nn.Module):
         self.dec_att = nn.Linear(512, 512)
         self.att = nn.Linear(512, 1)
         self.relu = nn.ReLU()
-        # TODO: check that dim=1 is correct
         self.softmax = nn.Softmax(dim=1)
 
         # decoder layers
@@ -810,8 +805,6 @@ class Decoder(nn.Module):
             with torch.no_grad():
                 encoded_layers, _ = model(tokens_tensor)
 
-            # TODO: Figure out why is wasn't "encoded_layers[11].squeeze(0)"
-            # Maybe the model used previously had 12 layers, and so only the last layer was used..
             # Now, remove batch axis
             bert_embedding = encoded_layers.squeeze(0)
 

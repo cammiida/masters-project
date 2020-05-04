@@ -37,7 +37,7 @@ class Experimenter():
 
         # Load trained generator model
         netG = G_NET()
-        state_dict = torch.load(os.path.join(model_path, data_size, 'MirrorGAN/netG_epoch_0.pth'),
+        state_dict = torch.load(os.path.join(model_path, data_size, 'MirrorGAN/netG_epoch_10.pth'),
                                 map_location=lambda storage, loc: storage)
         netG.load_state_dict(state_dict)
         netG.eval()
@@ -46,7 +46,7 @@ class Experimenter():
 
     def sent_to_target_ids(self, sentences: list) -> (torch.Tensor, list):
         # Prepare sentences
-        # TODO: Change this to BERT
+        # TODO: Change this to BERT?
         tokenized_sentences = []
         for sent in sentences:
             tokens = nltk.tokenize.word_tokenize(str(sent).lower())
@@ -56,6 +56,9 @@ class Experimenter():
             caption.append(self.vocab('<end>'))
             target = torch.Tensor(caption)
             tokenized_sentences.append(target)
+
+        # Sort longest to shortest sentence
+        tokenized_sentences.sort(reverse=True, key=len)
 
         lengths = [len(sent) for sent in tokenized_sentences]
 
@@ -103,13 +106,8 @@ class Experimenter():
             im = img.data.cpu().numpy()
             im = (im + 1.0) * 127.5
             im = im.astype(np.uint8)
-            # print('im', im.shape)
             im = np.transpose(im, (1, 2, 0))
-            # print('im', im.shape)
             im = Image.fromarray(im)
-            # title = sentences[j]
-            # print("title: ", title)
-            # im.show(title=title)
             pil_imgs.append(im)
 
         return pil_imgs
@@ -122,8 +120,6 @@ def display_img_grid(imgs: torch.Tensor, title='Generated Images'):
     :return: None
     """
     # Print images
-    # imgs = experimenter.gen_pil_imgs(fake_imgs)
-    print(type(imgs))
     img_grid = vutils.make_grid(imgs, padding=2, normalize=True).cpu()
     plt.figure(figsize=(8, 8))
     plt.axis("off")
@@ -136,12 +132,20 @@ def main():
     data_path = '../../../../data/'
     data_size = 'big'
 
+
     sentences = [
-        'I am sitting by the window, looking out over the ocean.',
-        'There is a golden retriever sitting by the door.',
-        'So this is the third sentence.'
+        'A bunch of vehicles that are in the street.',
+        'A street that goes on to a high way with the light on red.',
+        'A large white teddy bear sitting on top of an SUV.',
+        'A stationary train with the door wide open.',
+        'A train on some tracks with power lines above it.',
+        'An old truck carrying luggage at the back',
+        'A lamp with a shade sitting on top of an older model television.',
+        'A pot filled with some liquid and parchment paper.',
+        'A hand holding a smart phone with apps on a screen.'
     ]
 
+    #sentences = ['A red cabin on an island with a single boat by the pier.']
     experimenter = Experimenter(model_path, data_path, data_size)
     fake_imgs = experimenter.generate_images(sentences)
 

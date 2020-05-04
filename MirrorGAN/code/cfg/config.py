@@ -26,7 +26,7 @@ __C.TREE.BASE_SIZE = 64
 
 # TRAINING OPTIONS
 __C.TRAIN = edict()
-__C.TRAIN.BATCH_SIZE = 32 # TODO: Should be 64, but takes forever to get resources...
+__C.TRAIN.BATCH_SIZE = 32 # Should be 64, but takes forever to get resources...
 __C.TRAIN.MAX_EPOCH = 600
 __C.TRAIN.SNAPSHOT_INTERVAL = 2000
 __C.TRAIN.DISCRIMINATOR_LR = 2e-4

@@ -245,7 +245,6 @@ def main():
     mkdir_p(model_dir)
     mkdir_p(image_dir)
 
-    # TODO: Add VALID.BATCH_SIZE to config and find right value
     batch_size = cfg.TRAIN.BATCH_SIZE
 
     # Get data loaders ###################################################
@@ -338,8 +337,6 @@ if __name__ == '__main__':
         transforms.RandomCrop(imsize),
         transforms.RandomHorizontalFlip()
     ])
-
-    # TODO: Assert length of dataloader is a multiple of batch_size
 
     main()
 

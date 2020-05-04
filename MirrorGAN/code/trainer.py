@@ -266,7 +266,6 @@ class Trainer(object):
 
         noise, fixed_noise = noise.to(cfg.DEVICE), fixed_noise.to(cfg.DEVICE)
 
-        # TODO: Add to losses list and plot -> save plot
         G_losses = []
         D_losses = []
         gen_iterations = 0
@@ -280,7 +279,6 @@ class Trainer(object):
 
                 # (1) Prepare training data and compute text embeddings
                 imgs, captions, cap_lens = data
-                #imgs = imgs.to(cfg.DEVICE)
                 captions = captions.to(cfg.DEVICE)
 
                 hidden = text_encoder.init_hidden(batch_size)

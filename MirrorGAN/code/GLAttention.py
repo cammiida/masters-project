@@ -27,7 +27,6 @@ def func_attention(query, context, gamma1):
     attn = torch.bmm(contextT, query)
     # --> batch*sourceL x queryL
     attn = attn.view(batch_size*sourceL, queryL)
-    # TODO: check that dim=1 is correct
     attn = nn.Softmax(dim=1)(attn)  # Eq. (8)
 
     # --> batch x sourceL x queryL
@@ -37,7 +36,6 @@ def func_attention(query, context, gamma1):
     attn = attn.view(batch_size*queryL, sourceL)
 
     attn = attn * gamma1
-    # TODO: check that dim=1 is correct
     attn = nn.Softmax(dim=1)(attn)
     attn = attn.view(batch_size, queryL, sourceL)
     # --> batch x sourceL x queryL
@@ -56,7 +54,6 @@ class GLAttentionGeneral(nn.Module):
         self.conv_context = conv1x1(cdf, idf)
         self.conv_sentence_vis = conv1x1(idf, idf)
         self.linear = nn.Linear(100, idf)
-        # TODO: check that dim=1 is correct
         self.sm = nn.Softmax(dim=1)
         self.mask = None
 
@@ -113,7 +110,6 @@ class GLAttentionGeneral(nn.Module):
         sentence = sentence.repeat(1, 1, ih, iw)
         sentence_vs = torch.mul(input, sentence)   # batch x idf x ih x iw
         sentence_vs = self.conv_sentence_vis(sentence_vs) # batch x idf x ih x iw
-        # TODO: check that dim=1 is correct
         sent_att = nn.Softmax(dim=1)(sentence_vs)  # batch x idf x ih x iw
         weighted_sentence = torch.mul(sentence, sent_att)  # batch x idf x ih x iw
 
