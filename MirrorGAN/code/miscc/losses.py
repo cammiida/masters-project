@@ -190,16 +190,23 @@ def generator_loss(netsD, caption_cnn, caption_rnn, captions, fake_imgs,
         if i == (numDs - 1):
             fakeimg_feature = caption_cnn(fake_imgs[i])
             captions.to(cfg.DEVICE)
-            # TODO: Check if this can be done with BERT
+
             if isinstance(cap_lens, torch.Tensor):
                 cap_lens = cap_lens.data.tolist()
-            scores, caps_sorted, decode_lengths, alphas = caption_rnn(fakeimg_feature, captions, cap_lens)
-            scores = pack_padded_sequence(scores, decode_lengths, batch_first=True)[0].to(cfg.DEVICE)
 
-            targets = caps_sorted[:, 1:]
-            targets = pack_padded_sequence(targets, decode_lengths, batch_first=True)[0].to(cfg.DEVICE)
+            if cfg.STREAM.USE_ORIGINAL:
+                targets = pack_padded_sequence(captions, cap_lens, batch_first=True)[0]
+                cap_output = caption_rnn(fakeimg_feature, captions, cap_lens)
+                cap_loss = caption_loss(cap_output, targets) * cfg.TRAIN.SMOOTH.LAMBDA1
 
-            cap_loss = caption_loss(scores, targets) * cfg.TRAIN.SMOOTH.LAMBDA1
+            else:
+                scores, caps_sorted, decode_lengths, alphas = caption_rnn(fakeimg_feature, captions, cap_lens)
+                scores = pack_padded_sequence(scores, decode_lengths, batch_first=True)[0].to(cfg.DEVICE)
+
+                targets = caps_sorted[:, 1:]
+                targets = pack_padded_sequence(targets, decode_lengths, batch_first=True)[0].to(cfg.DEVICE)
+
+                cap_loss = caption_loss(scores, targets) * cfg.TRAIN.SMOOTH.LAMBDA1
 
             errG_total += cap_loss
             logs += 'cap_loss: %.2f, ' % cap_loss

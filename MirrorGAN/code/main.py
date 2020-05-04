@@ -24,6 +24,8 @@ def parse_args():
     parser.add_argument('--root_data_dir', dest='root_data_dir', type=str, default='')
     parser.add_argument('--data_size', dest='data_size', type=str, default='')
     parser.add_argument('--manual_seed', type=int, help='manual seed')
+    parser.add_argument('--original_STREAM', dest='use_original_STREAM', type=bool, default=False,
+                        help='Argument for using the original STREAM model in the MirrorGAN paper')
     return parser.parse_args()
 
 
@@ -106,20 +108,40 @@ def set_config_params():
     # Check that models config parameters are set
     assert cfg.MODELS_DIR != '', \
         "Directory for models must be set."
-    assert cfg.TRAIN.NET_E != '' and cfg.CAP.CAPTION_CNN_PATH != '' and cfg.CAP.CAPTION_RNN_PATH != '', \
+    assert cfg.TRAIN.NET_E != '' and cfg.STREAM.CAPTION_CNN_PATH != '' and cfg.STREAM.CAPTION_RNN_PATH != '', \
         "Model names must be specified."
 
-    # Set models paths
+
+    # Make sure the right values are set if the original STREAM is used
+    if args.use_original_STREAM:
+        assert cfg.DATASET_SIZE == 'big', \
+            "Dataset size must be big to use original STREAM"
+        cfg.STREAM.USE_ORIGINAL = True
+        cfg.STREAM.EMBEDDING_DIM = 256
+        cfg.STREAM.HIDDEN_SIZE = 512
+        cfg.STREAM.NUM_LAYERS = 1
+
+        cfg.STREAM.CAPTION_CNN_PATH = os.path.join(cfg.MODELS_DIR, cfg.DATASET_SIZE, 'STREAM', 'original', 'cnn_encoder.pkl')
+        cfg.STREAM.CAPTION_RNN_PATH = os.path.join(cfg.MODELS_DIR, cfg.DATASET_SIZE, 'STREAM', 'original', 'rnn_decoder.pkl')
+    else:
+        # Set STREAM model paths
+        cfg.STREAM.CAPTION_CNN_PATH = os.path.join(cfg.MODELS_DIR, cfg.DATASET_SIZE, cfg.STREAM.CAPTION_CNN_PATH)
+        cfg.STREAM.CAPTION_RNN_PATH = os.path.join(cfg.MODELS_DIR, cfg.DATASET_SIZE, cfg.STREAM.CAPTION_RNN_PATH)
+
+    # Set STEM model paths
     cfg.TRAIN.NET_E = os.path.join(cfg.MODELS_DIR, cfg.DATASET_SIZE, cfg.TRAIN.NET_E)
-    cfg.CAP.CAPTION_CNN_PATH = os.path.join(cfg.MODELS_DIR, cfg.DATASET_SIZE, cfg.CAP.CAPTION_CNN_PATH)
-    cfg.CAP.CAPTION_RNN_PATH = os.path.join(cfg.MODELS_DIR, cfg.DATASET_SIZE, cfg.CAP.CAPTION_RNN_PATH)
 
     # Set device
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(args.manual_seed)
         cfg.DEVICE = torch.device('cuda')
-    else:
-        cfg.DEVICE = torch.device('cpu')
+
+
+# TODO: Finish
+def load_vocab():
+    caption_path = os.path.join(cfg.DATA_DIR, 'annotations/captions_train2014.json')
+    vocab_path = os.path.join(cfg.DATA_DIR, 'vocab.pkl')
+    threshold = 5
 
 
 if __name__ == '__main__':

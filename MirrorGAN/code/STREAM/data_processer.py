@@ -61,9 +61,10 @@ def init_model(vocabulary):
     return encoder, decoder, decoder_optimizer
 
 
-def process_data(caption_path, vocab_path, threshold):
+def process_data(caption_path, vocab_path):
     # Create and save vocab
-    vocab = build_vocab(json=caption_path, threshold=threshold)
+    print("building vocab...")
+    vocab = build_vocab(json=caption_path)
     with open(vocab_path, 'wb') as f:
         pickle.dump(vocab, f)
 
@@ -91,7 +92,7 @@ def process_data(caption_path, vocab_path, threshold):
     print("done resizing images...")
 
 
-def build_vocab(json, threshold):
+def build_vocab(json):
     coco = COCO(json)
     counter = Counter()
     ids = coco.anns.keys()
@@ -103,9 +104,8 @@ def build_vocab(json, threshold):
         tokens = nltk.tokenize.word_tokenize(caption.lower())
         counter.update(tokens)
 
-    # TODO: Remove this?
     # omit non-frequent words
-    words = [word for word, cnt in counter.items() if cnt >= threshold]
+    words = [word for word, cnt in counter.items() if cnt >= cfg.STREAM.THRESHOLD]
 
     vocab = Vocabulary()
     vocab.add_word('<pad>') # 0

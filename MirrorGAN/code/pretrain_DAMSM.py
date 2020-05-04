@@ -67,8 +67,8 @@ def train(dataloader, cnn_model, rnn_model, batch_size,
         if captions.shape[0] != batch_size:
             break
 
+        # Extract imgs from list
         imgs = imgs[-1]
-
         imgs = imgs.to(cfg.DEVICE)
         captions = captions.to(cfg.DEVICE)
 
@@ -179,15 +179,16 @@ def evaluate(dataloader, cnn_model, rnn_model, batch_size, labels):
     for step, data in enumerate(tqdm(dataloader)):
         real_imgs, captions, cap_lens = data
 
-        # TODO: Should all of them be sent to cuda?
-        for size_batch in real_imgs:
-            size_batch.to(cfg.DEVICE)
-        # real_imgs = real_imgs.to(cfg.DEVICE)
+        # Don't use the last batch if it is smaller than batch_size
+        if captions.shape[0] != batch_size:
+            break
+
+        # Extract imgs from list
+        real_imgs = real_imgs[-1]
+        real_imgs = real_imgs.to(cfg.DEVICE)
         captions = captions.to(cfg.DEVICE)
-        cap_lens = torch.to(cfg.DEVICE)
 
         words_features, sent_code = cnn_model(real_imgs)
-        #words_features, sent_code = cnn_model(real_imgs[-1])
         # nef = words_features.size(1)
         # words_features = words_features.view(batch_size, nef, -1)
 
