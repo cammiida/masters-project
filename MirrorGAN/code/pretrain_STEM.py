@@ -35,7 +35,7 @@ sys.path.append(dir_path)
 UPDATE_INTERVAL = 200
 def parse_args():
     parser = argparse.ArgumentParser(description='Train a MirrorGAN network')
-    parser.add_argument('--cfg', dest='cfg_file', help='optional config file', default='cfg/pretrain_DAMSM.yml', type=str)
+    parser.add_argument('--cfg', dest='cfg_file', help='optional config file', default='cfg/pretrain_STEM.yml', type=str)
     parser.add_argument('--root_data_dir', dest='root_data_dir', type=str, default='')
     parser.add_argument('--data_size', dest='data_size', type=str, default='')
     parser.add_argument('--manual_seed', type=int, help='manual seed')
@@ -216,7 +216,7 @@ def evaluate(dataloader, cnn_model, rnn_model, batch_size, labels):
 
 def save_losses(s_loss, w_loss, epoch, save_dir):
     plt.figure(figsize=(10, 5))
-    plt.title("DAMSM Word and Sentence Loss During Training")
+    plt.title("STEM Word and Sentence Loss During Training")
     plt.plot(s_loss, label="Sentence")
     plt.plot(w_loss, label="Word")
     plt.xlabel("iterations")
@@ -226,7 +226,7 @@ def save_losses(s_loss, w_loss, epoch, save_dir):
     if not os.path.isdir(save_dir):
         mkdir_p(save_dir)
 
-    losses_name = 'DAMSM_losses_epoch_%d' % epoch
+    losses_name = 'STEM_losses_epoch_%d' % epoch
     losses_path = os.path.join(save_dir, losses_name)
     plt.savefig(losses_path)
 

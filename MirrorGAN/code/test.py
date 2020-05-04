@@ -15,7 +15,7 @@ import torch
 from torch.nn.utils.rnn import pack_padded_sequence
 import numpy as np
 
-#cfg_from_file('./cfg/pretrain_DAMSM.yml')
+#cfg_from_file('./cfg/pretrain_STEM.yml')
 cfg.DATA_DIR = '../../data/small'
 
 
