@@ -11,7 +11,7 @@ from PIL import Image
 from pycocotools.coco import COCO
 from datetime import datetime
 from nltk.translate.bleu_score import corpus_bleu
-
+from tqdm import tqdm
 
 #############
 # Init model
@@ -96,16 +96,13 @@ def build_vocab(json):
     coco = COCO(json)
     counter = Counter()
     ids = coco.anns.keys()
-    for i, id in enumerate(ids):
+    for i, id in enumerate(tqdm(ids)):
         caption = str(coco.anns[id]['caption'])
         # TODO: Can this be done with BERT tokenizer?
         # tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
         # tokens = tokenizer.tokenize(caption.lower())
         tokens = nltk.tokenize.word_tokenize(caption.lower())
         counter.update(tokens)
-
-        if (i + 1) % 1000 == 0 or i == len(ids)-1:
-            print("[{}/{}] Tokenized the captions.".format(i + 1, len(ids)))
 
     # omit non-frequent words
     words = [word for word, cnt in counter.items() if cnt >= cfg.STREAM.THRESHOLD]
