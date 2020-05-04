@@ -25,7 +25,7 @@ class loss_obj(object):
         self.avg = self.sum / self.count
 
 
-def save_loss_graph(epoch_num, losses, output_dir):
+def save_loss_graph(epoch_num, losses, loss_dir):
     print("Epoch: ", epoch_num)
     x_values = range(1, len(losses) + 1)
     y_values = losses
@@ -34,10 +34,6 @@ def save_loss_graph(epoch_num, losses, output_dir):
     x_label = "Batch number in epoch %d" % epoch_num
     plt.xlabel(x_label)
     plt.ylabel("Losses")
-    loss_dir = os.path.join(output_dir, 'losses')
-    if not os.path.isdir(loss_dir):
-        print("Creating loss directory")
-        mkdir_p(loss_dir)
 
     loss_path = os.path.join(loss_dir, 'epoch_%d' % epoch_num)
     plt.savefig(loss_path)
@@ -53,6 +49,9 @@ def train(encoder, decoder, decoder_optimizer, criterion, train_loader):
                  (cfg.OUTPUT_PATH, cfg.DATASET_SIZE,
                   cfg.DATASET_NAME, cfg.CONFIG_NAME, timestamp)
 
+    loss_dir = os.path.join(output_dir, 'Losses')
+    mkdir_p(output_dir)
+    mkdir_p(loss_dir)
     print('output_dir: ', output_dir)
 
     # TODO: Add scheduler? (See torch.optim how to adjust learning rate)
@@ -134,7 +133,7 @@ def train(encoder, decoder, decoder_optimizer, criterion, train_loader):
                 print('model saved')
 
         # save losses to graph
-        save_loss_graph(epoch_num=epoch + 1, losses=loss_list, output_dir=output_dir)
+        save_loss_graph(epoch_num=epoch + 1, losses=loss_list, loss_dir=loss_dir)
 
         torch.save({
             'epoch': epoch,

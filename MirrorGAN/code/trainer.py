@@ -26,8 +26,10 @@ class Trainer(object):
             self.output_dir = output_dir
             self.model_dir = os.path.join(output_dir, 'Model')
             self.image_dir = os.path.join(output_dir, 'Image')
+            self.losses_dir = os.path.join(output_dir, 'Losses')
             mkdir_p(self.model_dir)
             mkdir_p(self.image_dir)
+            mkdir_p(self.losses_dir)
 
         cudnn.benchmark = True
 
@@ -361,12 +363,9 @@ class Trainer(object):
         plt.xlabel("iterations")
         plt.ylabel("Loss")
         plt.legend()
-        save_dir = os.path.join(self.output_dir, 'Losses')
-        if not os.path.isdir(save_dir):
-            mkdir_p(save_dir)
 
         losses_name = 'G_D_losses_epoch_%d' % epoch
-        losses_path = os.path.join(save_dir, losses_name)
+        losses_path = os.path.join(self.losses_dir, losses_name)
         plt.savefig(losses_path)
 
 
