@@ -60,7 +60,7 @@ def init_model(vocabulary):
 
     return encoder, decoder, decoder_optimizer
 
-
+# TODO: Move this to its own file so that data can be processed without being linked to training of a model
 def process_data(caption_path, vocab_path):
     # Create and save vocab
     print("building vocab...")
@@ -105,7 +105,7 @@ def build_vocab(json):
         counter.update(tokens)
 
     # omit non-frequent words
-    words = [word for word, cnt in counter.items() if cnt >= cfg.STREAM.THRESHOLD]
+    words = [word for word, cnt in counter.items() if cnt >= cfg.VOCAB.THRESHOLD]
 
     vocab = Vocabulary()
     vocab.add_word('<pad>') # 0

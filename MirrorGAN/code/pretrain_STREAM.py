@@ -79,7 +79,7 @@ def set_config_params():
         cfg.STREAM.PREPROCESS_DATA = args.preprocess_data
 
     if args.threshold is not None:
-        cfg.STREAM.THRESHOLD = args.threshold
+        cfg.VOCAB.THRESHOLD = args.threshold
 
     print('Using config:')
     pprint.pprint(cfg)
