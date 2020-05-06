@@ -42,16 +42,45 @@ def parse_args():
     return parser.parse_args()
 
 
+def build_models():
+    text_encoder = RNN_ENCODER(len(vocab), nhidden=cfg.TEXT.EMBEDDING_DIM)
+    image_encoder = CNN_ENCODER(cfg.TEXT.EMBEDDING_DIM)
+    labels = torch.LongTensor(range(cfg.TRAIN.BATCH_SIZE))
+
+    start_epoch = 0
+    if cfg.TRAIN.NET_E != '':
+        state_dict = torch.load(cfg.TRAIN.NET_E)
+        text_encoder.load_state_dict(state_dict)
+        print('Load', cfg.TRAIN.NET_E)
+        #
+        name = cfg.TRAIN.NET_E.replace('text_encoder', 'image_encoder')
+        state_dict = torch.load(name)
+        image_encoder.load_state_dict(state_dict)
+        print('Load', name)
+
+        istart = cfg.TRAIN.NET_E.rfind('_') + 8
+        iend = cfg.TRAIN.NET_E.rfind('.')
+        start_epoch = cfg.TRAIN.NET_E[istart:iend]
+        start_epoch = int(start_epoch) + 1
+        print('start_epoch', start_epoch)
+
+    text_encoder = text_encoder.to(cfg.DEVICE)
+    image_encoder = image_encoder.to(cfg.DEVICE)
+    labels = labels.to(cfg.DEVICE)
+
+    return text_encoder, image_encoder, labels, start_epoch
+
+
 def train(dataloader, cnn_model, rnn_model, batch_size,
           labels, optimizer, epoch, image_dir):
     print("Training...")
 
     cnn_model.train()
     rnn_model.train()
-    s_total_loss0 = 0
-    s_total_loss1 = 0
-    w_total_loss0 = 0
-    w_total_loss1 = 0
+    s_total_loss0, s_losses0 = 0, []
+    s_total_loss1, s_losses1 = 0, []
+    w_total_loss0, w_losses0 = 0, []
+    w_total_loss1, w_losses1 = 0, []
     count = (epoch + 1) * len(dataloader)
     start_time = time.time()
 
@@ -60,15 +89,13 @@ def train(dataloader, cnn_model, rnn_model, batch_size,
         cnn_model.zero_grad()
 
         imgs, captions, cap_lens = data
-        # skip last batch if it is not full batch size
-
-
         # Don't use the last batch if it is smaller than batch_size
         if captions.shape[0] != batch_size:
             break
 
-        # Extract imgs from list
+        # Extract imgs from list (get highest res images)
         imgs = imgs[-1]
+        # --> batch_size x channels x width x height
         imgs = imgs.to(cfg.DEVICE)
         captions = captions.to(cfg.DEVICE)
 
@@ -94,6 +121,11 @@ def train(dataloader, cnn_model, rnn_model, batch_size,
         loss += s_loss0 + s_loss1
         s_total_loss0 += s_loss0.data
         s_total_loss1 += s_loss1.data
+
+        s_losses0.append(s_total_loss0)
+        s_losses1.append(s_total_loss1)
+        w_losses0.append(w_total_loss0)
+        w_losses1.append(w_total_loss1)
         #
         loss.backward()
         #
@@ -134,37 +166,10 @@ def train(dataloader, cnn_model, rnn_model, batch_size,
                 im = Image.fromarray(img_set)
                 fullpath = '%s/attention_maps%d.png' % (image_dir, step)
                 im.save(fullpath)
+    losses = {'s_losses0': s_losses0, 's_losses1': s_losses1,
+              'w_losses0': w_losses0, 'w_losses1': w_losses1}
 
-    return count
-
-
-def build_models():
-    text_encoder = RNN_ENCODER(len(vocab), nhidden=cfg.TEXT.EMBEDDING_DIM)
-    image_encoder = CNN_ENCODER(cfg.TEXT.EMBEDDING_DIM)
-    labels = torch.LongTensor(range(cfg.TRAIN.BATCH_SIZE))
-
-    start_epoch = 0
-    if cfg.TRAIN.NET_E != '':
-        state_dict = torch.load(cfg.TRAIN.NET_E)
-        text_encoder.load_state_dict(state_dict)
-        print('Load', cfg.TRAIN.NET_E)
-        #
-        name = cfg.TRAIN.NET_E.replace('text_encoder', 'image_encoder')
-        state_dict = torch.load(name)
-        image_encoder.load_state_dict(state_dict)
-        print('Load', name)
-
-        istart = cfg.TRAIN.NET_E.rfind('_') + 8
-        iend = cfg.TRAIN.NET_E.rfind('.')
-        start_epoch = cfg.TRAIN.NET_E[istart:iend]
-        start_epoch = int(start_epoch) + 1
-        print('start_epoch', start_epoch)
-
-    text_encoder = text_encoder.to(cfg.DEVICE)
-    image_encoder = image_encoder.to(cfg.DEVICE)
-    labels = labels.to(cfg.DEVICE)
-
-    return text_encoder, image_encoder, labels, start_epoch
+    return count, losses
 
 
 def evaluate(dataloader, cnn_model, rnn_model, batch_size, labels):
@@ -174,8 +179,7 @@ def evaluate(dataloader, cnn_model, rnn_model, batch_size, labels):
 
     s_total_loss = 0
     w_total_loss = 0
-    s_loss = []
-    w_loss = []
+
     for step, data in enumerate(tqdm(dataloader)):
         real_imgs, captions, cap_lens = data
 
@@ -204,21 +208,23 @@ def evaluate(dataloader, cnn_model, rnn_model, batch_size, labels):
         s_loss0, s_loss1 = \
             sent_loss(sent_code, sent_emb, labels, class_ids=None, batch_size=batch_size)
         s_total_loss += (s_loss0 + s_loss1).data
-        s_loss.append(s_total_loss)
-        w_loss.append(w_total_loss)
+
+
         if step == 50:
             break
 
     s_cur_loss = s_total_loss.item() / step
     w_cur_loss = w_total_loss.item() / step
 
-    return s_cur_loss, w_cur_loss, s_loss, w_loss
+    return s_cur_loss, w_cur_loss
 
-def save_losses(s_loss, w_loss, epoch, save_dir):
+def save_losses(losses: dict, epoch, save_dir):
+    print("Saving losses...")
     plt.figure(figsize=(10, 5))
     plt.title("STEM Word and Sentence Loss During Training")
-    plt.plot(s_loss, label="Sentence")
-    plt.plot(w_loss, label="Word")
+    for loss in losses:
+        plt.plot(losses[loss], label=loss)
+        plt.plot(losses[loss], label=loss)
     plt.xlabel("iterations")
     plt.ylabel("Loss")
     plt.legend()
@@ -254,42 +260,43 @@ def main():
     # Train ##############################################################
     text_encoder, image_encoder, labels, start_epoch = build_models()
     para = list(text_encoder.parameters())
-    for v in list(text_encoder.parameters()):
+    for v in image_encoder.parameters():
         if v.requires_grad:
             para.append(v)
-        # optimizer = optim.Adam(para, lr=cfg.TRAIN.ENCODER_LR, betas=(0.5, 0.999))
-        # At any point you can hit Ctrl + C to break out of training early
-        try:
-            lr = cfg.TRAIN.ENCODER_LR
-            for epoch in range(start_epoch, cfg.TRAIN.MAX_EPOCH):
-                optimizer = optim.Adam(para, lr=lr, betas=(0.5, 0.999))
-                # epoch_start_time = time.time()
-                count = train(train_loader, image_encoder, text_encoder,
-                              batch_size, labels, optimizer, epoch, image_dir)
-                print('-' * 89)
-                if len(val_loader) > 0:
-                    s_loss, w_loss, s_loss_list, w_loss_list = \
-                        evaluate(val_loader, image_encoder, text_encoder, batch_size, labels)
 
-                    save_losses(s_loss_list, w_loss_list, epoch, output_dir)
+    # At any point you can hit Ctrl + C to break out of training early
+    try:
+        lr = cfg.TRAIN.ENCODER_LR
+        for epoch in range(start_epoch, cfg.TRAIN.MAX_EPOCH):
+            optimizer = optim.Adam(para, lr=lr, betas=(0.5, 0.999))
+            # epoch_start_time = time.time()
+            count, losses = train(train_loader, image_encoder, text_encoder,
+                          batch_size, labels, optimizer, epoch, image_dir)
 
-                    print('| end epoch {:3d} | valid loss '
-                          '{:5.2f} {:5.2f} | lr {:.5f}|'
-                          .format(epoch, s_loss, w_loss, lr))
-                print('-' * 89)
-                if lr > cfg.TRAIN.ENCODER_LR/10.:
-                    lr *= 0.98
+            save_losses(losses, epoch, output_dir)
 
-                if (epoch % cfg.TRAIN.SNAPSHOT_INTERVAL == 0 or
-                    epoch == cfg.TRAIN.MAX_EPOCH):
-                    torch.save(image_encoder.state_dict(),
-                               '%s/image_encoder%d.pth' % (model_dir, epoch))
-                    torch.save(text_encoder.state_dict(),
-                               '%s/text_encoder%d.pth' % (model_dir, epoch))
-                    print('Save G/Ds models.')
-        except KeyboardInterrupt:
             print('-' * 89)
-            print('Exiting from training early')
+            if len(val_loader) > 0:
+                s_loss, w_loss = \
+                    evaluate(val_loader, image_encoder, text_encoder, batch_size, labels)
+
+                print('| end epoch {:3d} | valid loss '
+                      '{:5.2f} {:5.2f} | lr {:.5f}|'
+                      .format(epoch, s_loss, w_loss, lr))
+            print('-' * 89)
+            if lr > cfg.TRAIN.ENCODER_LR/10.:
+                lr *= 0.98
+
+            if (epoch % cfg.TRAIN.SNAPSHOT_INTERVAL == 0 or
+                epoch == cfg.TRAIN.MAX_EPOCH):
+                torch.save(image_encoder.state_dict(),
+                           '%s/image_encoder%d.pth' % (model_dir, epoch))
+                torch.save(text_encoder.state_dict(),
+                           '%s/text_encoder%d.pth' % (model_dir, epoch))
+                print('Save G/Ds models.')
+    except KeyboardInterrupt:
+        print('-' * 89)
+        print('Exiting from training early')
 
 
 if __name__ == '__main__':
