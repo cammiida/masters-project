@@ -146,16 +146,27 @@ def main():
     ]
 
     #sentences = ['A red cabin on an island with a single boat by the pier.']
+
     experimenter = Experimenter(model_path, data_path, data_size)
+    '''
     fake_imgs = experimenter.generate_images(sentences)
 
     # Get highest resolution images
     fake_imgs = fake_imgs[-1]
     display_img_grid(fake_imgs)
+    '''
+    experiment1(sentences, experimenter)
 
+# Generate many images of same sentence
+def experiment1(sentences, experimenter, num_imgs=6):
 
-def experiment1():
-    pass
+    for sent in sentences:
+        fake_imgs = torch.zeros(num_imgs, 3, 256, 256)
+        for i in range(num_imgs):
+            fake_img = experimenter.generate_images([sent])
+            fake_img = fake_img[-1].squeeze()
+            fake_imgs[i] = fake_img
+        display_img_grid(fake_imgs, title=sent)
 
 
 if __name__ == '__main__':
