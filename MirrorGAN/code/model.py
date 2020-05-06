@@ -805,7 +805,8 @@ class Decoder(nn.Module):
             with torch.no_grad():
                 encoded_layers, _ = model(tokens_tensor)
 
-            # Now, remove batch axis
+            # Previously had to choose last hidden state, but now get it right away.
+            # Still remove batch axis
             bert_embedding = encoded_layers.squeeze(0)
 
             split_cap = cap.split()

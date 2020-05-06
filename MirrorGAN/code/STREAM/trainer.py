@@ -68,18 +68,19 @@ def train(encoder, decoder, decoder_optimizer, criterion, train_loader):
         num_batches = len(train_loader)
 
         # Loop through each batch
-        for i, (imgs, caps, caplens) in enumerate(tqdm(train_loader)):
+        for i, (imgs, caps, cap_lens) in enumerate(tqdm(train_loader)):
             # Extract imgs from list
             imgs = imgs[-1]
-            imgs = encoder(imgs.to(cfg.DEVICE))
-            caps = caps.to(cfg.DEVICE)
 
             # Skip last batch if it doesn't fit the batch size
             if len(imgs) != cfg.TRAIN.BATCH_SIZE:
                 break
 
+            encoder_out = encoder(imgs.to(cfg.DEVICE))
+            caps = caps.to(cfg.DEVICE)
+
             # Packing to optimize computations
-            scores, caps_sorted, decode_lengths, alphas = decoder(imgs, caps, caplens)
+            scores, caps_sorted, decode_lengths, alphas = decoder(encoder_out, caps, cap_lens)
             scores = pack_padded_sequence(scores, decode_lengths, batch_first=True)[0]
 
             targets = caps_sorted[:, 1:]

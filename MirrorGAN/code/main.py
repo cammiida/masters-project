@@ -83,24 +83,17 @@ def gen_example(wordtoix, algo):
 def set_config_params():
     # Get file
     args = parse_args()
-    if args.cfg_file != '':
-        cfg_from_file(args.cfg_file)
+    if args.cfg_file != '': cfg_from_file(args.cfg_file)
 
     # Set config
-    if args.root_data_dir != '':
-        cfg.ROOT_DATA_DIR = args.root_data_dir
-    if args.data_size != '':
-        cfg.DATASET_SIZE = args.data_size
-
+    if args.root_data_dir != '': cfg.ROOT_DATA_DIR = args.root_data_dir
+    if args.data_size != '': cfg.DATASET_SIZE = args.data_size
     cfg.DATA_DIR = os.path.join(cfg.ROOT_DATA_DIR, cfg.DATASET_SIZE)
-    print('Using config:')
-    pprint.pprint(cfg)
 
     # Set seed for train or not train env
-    if not cfg.TRAIN.FLAG:
-        args.manual_seed = 100
-    elif args.manual_seed is None:
-        args.manual_seed = random.randint(1, 10000)
+    if not cfg.TRAIN.FLAG: args.manual_seed = 100
+    elif args.manual_seed is None: args.manual_seed = random.randint(1, 10000)
+
     random.seed(args.manual_seed)
     np.random.seed(args.manual_seed)
     torch.manual_seed(args.manual_seed)
@@ -136,12 +129,8 @@ def set_config_params():
         torch.cuda.manual_seed_all(args.manual_seed)
         cfg.DEVICE = torch.device('cuda')
 
-
-# TODO: Finish
-def load_vocab():
-    caption_path = os.path.join(cfg.DATA_DIR, 'annotations/captions_train2014.json')
-    vocab_path = os.path.join(cfg.DATA_DIR, 'vocab.pkl')
-    threshold = 5
+    print('Using config:')
+    pprint.pprint(cfg)
 
 
 if __name__ == '__main__':
