@@ -77,10 +77,12 @@ def train(dataloader, cnn_model, rnn_model, batch_size,
 
     cnn_model.train()
     rnn_model.train()
-    s_total_loss0, s_losses0 = 0, []
-    s_total_loss1, s_losses1 = 0, []
-    w_total_loss0, w_losses0 = 0, []
-    w_total_loss1, w_losses1 = 0, []
+    s_total_loss0 = 0
+    s_total_loss1 = 0
+    w_total_loss0 = 0
+    w_total_loss1 = 0
+    w_losses = []
+    s_losses = []
     count = (epoch + 1) * len(dataloader)
     start_time = time.time()
 
@@ -114,18 +116,19 @@ def train(dataloader, cnn_model, rnn_model, batch_size,
                                                  class_ids=None, batch_size=cfg.TRAIN.BATCH_SIZE)
         w_total_loss0 += w_loss0.data
         w_total_loss1 += w_loss1.data
-        loss = w_loss0 + w_loss1
+        w_loss = w_loss0 + w_loss1
+
+
 
         s_loss0, s_loss1 = \
             sent_loss(sent_code, sent_emb, labels, class_ids=None, batch_size=cfg.TRAIN.BATCH_SIZE)
-        loss += s_loss0 + s_loss1
+        s_loss = s_loss0 + s_loss1
         s_total_loss0 += s_loss0.data
         s_total_loss1 += s_loss1.data
 
-        s_losses0.append(s_total_loss0)
-        s_losses1.append(s_total_loss1)
-        w_losses0.append(w_total_loss0)
-        w_losses1.append(w_total_loss1)
+        loss = w_loss + s_loss
+        w_losses.append(w_loss.item())
+        s_losses.append(s_loss.item())
         #
         loss.backward()
         #
@@ -166,8 +169,7 @@ def train(dataloader, cnn_model, rnn_model, batch_size,
                 im = Image.fromarray(img_set)
                 fullpath = '%s/attention_maps%d.png' % (image_dir, step)
                 im.save(fullpath)
-    losses = {'s_losses0': s_losses0, 's_losses1': s_losses1,
-              'w_losses0': w_losses0, 'w_losses1': w_losses1}
+    losses = {'w_losses': w_losses, 's_losses': s_losses }
 
     return count, losses
 
