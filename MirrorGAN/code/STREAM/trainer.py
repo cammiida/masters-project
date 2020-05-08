@@ -1,5 +1,6 @@
 import os
 import torch
+import time
 from tqdm import tqdm
 from datetime import datetime
 import dateutil.tz
@@ -59,7 +60,7 @@ def train(encoder, decoder, decoder_optimizer, criterion, train_loader):
 
     loss_list = []
     for epoch in tqdm(range(cfg.TRAIN.MAX_EPOCH)):
-
+        start_t = time.time()
         # Set the models in training mode
         decoder.train()
         encoder.train()
@@ -69,6 +70,7 @@ def train(encoder, decoder, decoder_optimizer, criterion, train_loader):
 
         # Loop through each batch
         for i, (imgs, caps, cap_lens) in enumerate(tqdm(train_loader)):
+            b_start_t = time.time()
             # Extract imgs from list
             imgs = imgs[-1]
 
@@ -130,7 +132,9 @@ def train(encoder, decoder, decoder_optimizer, criterion, train_loader):
                     'loss': loss,
                 }, os.path.join(output_dir, 'encoder_mid'))
 
+                b_end_t = time.time()
                 print('model saved')
+                print('Time spent on batch: %ds' % (b_end_t - b_start_t))
 
         # save losses to graph
         save_loss_graph(epoch_num=epoch + 1, losses=loss_list, loss_dir=loss_dir)
@@ -148,7 +152,9 @@ def train(encoder, decoder, decoder_optimizer, criterion, train_loader):
             'loss': loss,
         }, os.path.join(output_dir, 'encoder_epoch%s' % str(epoch + 1)))
 
+        end_t = time.time()
         print('epoch checkpoint saved')
+        print('Time spent on epoch: %ds' % (end_t - start_t))
 
     print("Completed training...")
 
