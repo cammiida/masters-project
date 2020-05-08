@@ -107,10 +107,9 @@ def train(encoder, decoder, decoder_optimizer, criterion, train_loader):
 
             # TODO: Set this to 100?
             # save model each 100 batches
-            if (i % 5000 == 0 and i != 0) or i == num_batches:
+            if i % 5000 == 0 and i != 0:
                 print('epoch ' + str(epoch + 1) + '/4 ,Batch ' + str(i) + '/' + str(num_batches) + ' loss:' + str(
                     losses.avg))
-
 
                 # adjust learning rate (create condition for this)
                 for param_group in decoder_optimizer.param_groups:
@@ -164,7 +163,6 @@ def validate(encoder, decoder, criterion, val_loader):
     hypotheses = []
     all_imgs = []
     all_alphas = []
-
 
     print("Started validation...")
     decoder.eval()
