@@ -241,3 +241,4 @@ STREAM/glove.6B
 STREAM/checkpoints
 models
 output
+losses
