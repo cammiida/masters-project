@@ -124,6 +124,7 @@ class Trainer(object):
         print('# of netsD', len(netsD))
 
         epoch = 0
+        # Load models from checkpoints
         if cfg.TRAIN.NET_G != '':
             state_dict = \
                 torch.load(cfg.TRAIN.NET_G, map_location=lambda storage, loc: storage)

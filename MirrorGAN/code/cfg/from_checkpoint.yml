@@ -1,0 +1,7 @@
+CONFIG_NAME: 'MirrorGAN from checkpoint'
+
+TRAIN:
+    FLAG: True
+    NET_E: 'STEM/text_encoder.pth'
+    NET_G: 'MirrorGAN/netG.pth'
+    B_NET_D: True

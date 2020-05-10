@@ -37,8 +37,8 @@ __C.TRAIN.RNN_GRAD_CLIP = 0.25
 __C.TRAIN.FLAG = True
 
 __C.TRAIN.NET_E = 'STEM/text_encoder.pth'
-__C.TRAIN.NET_G = ''
-__C.TRAIN.B_NET_D = True
+__C.TRAIN.NET_G = '' # Train G from checkpoint
+__C.TRAIN.B_NET_D = False # Train Ds from checkpoint
 
 __C.TRAIN.SMOOTH = edict()
 __C.TRAIN.SMOOTH.GAMMA1 = 5.0
