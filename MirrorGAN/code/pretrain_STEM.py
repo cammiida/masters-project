@@ -84,9 +84,9 @@ def train(dataloader, cnn_model, rnn_model, batch_size,
     w_losses = []
     s_losses = []
     count = (epoch + 1) * len(dataloader)
-    start_time = time.time()
 
     for step, data in enumerate(tqdm(dataloader)):
+        start_time = time.time()
         rnn_model.zero_grad()
         cnn_model.zero_grad()
 
@@ -169,9 +169,10 @@ def train(dataloader, cnn_model, rnn_model, batch_size,
                 im = Image.fromarray(img_set)
                 fullpath = '%s/attention_maps%d.png' % (image_dir, step)
                 im.save(fullpath)
-    losses = {'w_losses': w_losses, 's_losses': s_losses }
+        end_time = time.time()
+        print("Time spent on training for one full batch of size %d: %ds" % (batch_size, end_time-start_time))
 
-    return count, losses
+    return count, w_losses, s_losses
 
 
 def evaluate(dataloader, cnn_model, rnn_model, batch_size, labels):
@@ -252,6 +253,8 @@ def main():
     image_dir = os.path.join(output_dir, 'Image')
     mkdir_p(model_dir)
     mkdir_p(image_dir)
+    w_losses = []
+    s_losses = []
 
     batch_size = cfg.TRAIN.BATCH_SIZE
 
@@ -270,12 +273,15 @@ def main():
     try:
         lr = cfg.TRAIN.ENCODER_LR
         for epoch in range(start_epoch, cfg.TRAIN.MAX_EPOCH):
+            start_time = time.time()
             optimizer = optim.Adam(para, lr=lr, betas=(0.5, 0.999))
             # epoch_start_time = time.time()
-            count, losses = train(train_loader, image_encoder, text_encoder,
-                          batch_size, labels, optimizer, epoch, image_dir)
+            count, batch_w_losses, batch_s_losses = \
+                train(train_loader, image_encoder, text_encoder, batch_size, labels, optimizer, epoch, image_dir)
 
-            save_losses(losses, epoch, output_dir)
+            w_losses = w_losses + batch_w_losses
+            s_losses = s_losses + batch_s_losses
+
 
             print('-' * 89)
             if len(val_loader) > 0:
@@ -296,6 +302,11 @@ def main():
                 torch.save(text_encoder.state_dict(),
                            '%s/text_encoder%d.pth' % (model_dir, epoch))
                 print('Save G/Ds models.')
+
+                losses = {'w_losses': w_losses, 's_losses': s_losses}
+                save_losses(losses, epoch, output_dir)
+            end_time = time.time()
+            print("Time spent on training for one epoch: %ds" % (end_time-start_time))
     except KeyboardInterrupt:
         print('-' * 89)
         print('Exiting from training early')
