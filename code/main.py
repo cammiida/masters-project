@@ -4,6 +4,7 @@ from cfg.config import cfg, cfg_from_file
 from datasets import get_loader, collate_fn
 from process_data import Vocabulary
 from trainer import Trainer
+from miscc.utils import str2bool
 
 import os
 import time
@@ -24,7 +25,7 @@ def parse_args():
     parser.add_argument('--root_data_dir', dest='root_data_dir', type=str, default='')
     parser.add_argument('--data_size', dest='data_size', type=str, default='')
     parser.add_argument('--manual_seed', type=int, help='manual seed')
-    parser.add_argument('--original_STREAM', dest='use_original_STREAM', type=bool, default=False,
+    parser.add_argument('--original_STREAM', dest='use_original_STREAM', type=str2bool, default=False,
                         help='Argument for using the original STREAM model in the MirrorGAN paper')
     return parser.parse_args()
 
