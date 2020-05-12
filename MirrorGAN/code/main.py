@@ -104,6 +104,9 @@ def set_config_params():
     assert cfg.TRAIN.NET_E != '' and cfg.STREAM.CAPTION_CNN_PATH != '' and cfg.STREAM.CAPTION_RNN_PATH != '', \
         "Model names must be specified."
 
+    # Set Generator and STEM model paths
+    cfg.TRAIN.NET_G = os.path.join(cfg.MODELS_DIR, cfg.DATASET_SIZE, cfg.TRAIN.NET_G)
+    cfg.TRAIN.NET_E = os.path.join(cfg.MODELS_DIR, cfg.DATASET_SIZE, cfg.TRAIN.NET_E)
 
     # Make sure the right values are set if the original STREAM is used
     if args.use_original_STREAM:
@@ -120,9 +123,6 @@ def set_config_params():
         # Set STREAM model paths
         cfg.STREAM.CAPTION_CNN_PATH = os.path.join(cfg.MODELS_DIR, cfg.DATASET_SIZE, cfg.STREAM.CAPTION_CNN_PATH)
         cfg.STREAM.CAPTION_RNN_PATH = os.path.join(cfg.MODELS_DIR, cfg.DATASET_SIZE, cfg.STREAM.CAPTION_RNN_PATH)
-
-    # Set STEM model paths
-    cfg.TRAIN.NET_E = os.path.join(cfg.MODELS_DIR, cfg.DATASET_SIZE, cfg.TRAIN.NET_E)
 
     # Set device
     if torch.cuda.is_available():
