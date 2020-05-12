@@ -101,7 +101,7 @@ def set_config_params():
     # Check that models config parameters are set
     assert cfg.MODELS_DIR != '', \
         "Directory for models must be set."
-    assert cfg.TRAIN.NET_E != '' and cfg.STREAM.CAPTION_CNN_PATH != '' and cfg.STREAM.CAPTION_RNN_PATH != '', \
+    assert cfg.TRAIN.NET_E != '' and cfg.TRAIN.CAP_CNN != '' and cfg.TRAIN.CAP_RNN != '', \
         "Model names must be specified."
 
     # Set Generator and STEM model paths
@@ -112,17 +112,20 @@ def set_config_params():
     if args.use_original_STREAM:
         assert cfg.DATASET_SIZE == 'big', \
             "Dataset size must be big to use original STREAM"
-        cfg.STREAM.USE_ORIGINAL = True
-        cfg.STREAM.EMBEDDING_DIM = 256
-        cfg.STREAM.HIDDEN_SIZE = 512
-        cfg.STREAM.NUM_LAYERS = 1
+        cfg.TREE.BRANCH_NUM = 1
+        cfg.TEXT.EMBEDDING_DIM = 256
+        cfg.TRAIN.STREAM.USE_ORIGINAL = True
+        cfg.TRAIN.STREAM.HIDDEN_SIZE = 512
 
-        cfg.STREAM.CAPTION_CNN_PATH = os.path.join(cfg.MODELS_DIR, cfg.DATASET_SIZE, 'STREAM', 'original', 'cnn_encoder.pkl')
-        cfg.STREAM.CAPTION_RNN_PATH = os.path.join(cfg.MODELS_DIR, cfg.DATASET_SIZE, 'STREAM', 'original', 'rnn_decoder.pkl')
+    # Set STREAM model paths
+    if args.use_original_STREAM:
+        i_cnn = cfg.TRAIN.CAP_CNN.rfind('/')
+        i_rnn = cfg.TRAIN.CAP_RNN.rfind('/')
+        cfg.TRAIN.CAP_CNN = os.path.join(cfg.MODELS_DIR, cfg.DATASET_SIZE, cfg.TRAIN.CAP_CNN[:i_cnn], 'original', cfg.TRAIN.CAP_CNN[i_cnn+1:])
+        cfg.TRAIN.CAP_RNN = os.path.join(cfg.MODELS_DIR, cfg.DATASET_SIZE, cfg.TRAIN.CAP_RNN[:i_rnn], 'original', cfg.TRAIN.CAP_RNN[i_rnn+1:])
     else:
-        # Set STREAM model paths
-        cfg.STREAM.CAPTION_CNN_PATH = os.path.join(cfg.MODELS_DIR, cfg.DATASET_SIZE, cfg.STREAM.CAPTION_CNN_PATH)
-        cfg.STREAM.CAPTION_RNN_PATH = os.path.join(cfg.MODELS_DIR, cfg.DATASET_SIZE, cfg.STREAM.CAPTION_RNN_PATH)
+        cfg.TRAIN.CAP_CNN = os.path.join(cfg.MODELS_DIR, cfg.DATASET_SIZE, cfg.TRAIN.CAP_CNN)
+        cfg.TRAIN.CAP_RNN = os.path.join(cfg.MODELS_DIR, cfg.DATASET_SIZE, cfg.TRAIN.CAP_RNN)
 
     # Set device
     if torch.cuda.is_available():

@@ -40,7 +40,7 @@ if load_old_stream:
     f = open('../models/big/original_STREAM/vocab.pkl', 'rb')
     vocab = pickle.load(f)
 
-    caption_cnn = CAPTION_CNN(embed_size=cfg.STREAM.EMBED_SIZE)
+    caption_cnn = CAPTION_CNN(embed_size=cfg.TEXT.EMBEDDING_DIM)
     caption_rnn = CAPTION_RNN(embed_size=256, hidden_size=512, vocab_size=len(vocab), num_layers=1)
 
     cnn_checkpoint = torch.load('../models/big/original_STREAM/cnn_encoder.pkl', map_location=lambda storage, loc: storage)

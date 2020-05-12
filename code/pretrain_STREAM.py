@@ -43,14 +43,14 @@ def pretrain_STREAM():
     # Run training/validation
     ######################
 
-    if cfg.STREAM.TRAIN_MODEL:
+    if cfg.TRAIN.FLAG:
         # Load data
         train_loader = get_loader('train', vocab, cfg.TRAIN.BATCH_SIZE,
                                   transform=transform, norm=norm)
         train(encoder=enc, decoder=dec, decoder_optimizer=dec_optim,
               criterion=crit, train_loader=train_loader)
 
-    if cfg.STREAM.VALID_MODEL:
+    if cfg.TRAIN.VALIDATE:
         # Load data
         val_loader = get_loader('val', vocab, cfg.TRAIN.BATCH_SIZE,
                                 transform=transform, norm=norm)
@@ -76,7 +76,7 @@ def set_config_params():
         cfg.DEVICE = torch.device('cuda')
 
     if args.preprocess_data is not None:
-        cfg.STREAM.PREPROCESS_DATA = args.preprocess_data
+        cfg.TRAIN.STREAM.PREPROCESS_DATA = args.preprocess_data
 
     if args.threshold is not None:
         cfg.VOCAB.THRESHOLD = args.threshold
@@ -90,7 +90,7 @@ if __name__ == '__main__':
     caption_path = os.path.join(cfg.DATA_DIR, 'annotations/captions_train2014.json')
     vocab_path = os.path.join(cfg.DATA_DIR, 'vocab.pkl')
 
-    if cfg.STREAM.PREPROCESS_DATA:
+    if cfg.TRAIN.STREAM.PREPROCESS_DATA:
         process_data(caption_path, vocab_path)
 
     # Load vocabulary

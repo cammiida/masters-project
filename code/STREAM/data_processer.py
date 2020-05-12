@@ -21,34 +21,11 @@ def init_model(vocabulary):
     encoder = Encoder().to(cfg.DEVICE)
     decoder = Decoder(vocab=vocabulary).to(cfg.DEVICE)
     # TODO: Fix from checkpoint paths
-    if cfg.STREAM.FROM_CHECKPOINT:
+    if cfg.TRAIN.CAP_CNN and cfg.TRAIN.CAP_RNN:
 
-        if torch.cuda.is_available():
-            if cfg.ALBERT_MODEL:
-                print('Pre-Trained ALBERT Model')
-                encoder_checkpoint = torch.load('checkpoints/encoder_albert')
-                decoder_checkpoint = torch.load('checkpoints/decoder_albert')
-            elif cfg.GLOVE_MODEL:
-                print('Pre-Trained GloVe Model')
-                encoder_checkpoint = torch.load('checkpoints/encoder_glove')
-                decoder_checkpoint = torch.load('checkpoints/decoder_glove')
-            else:
-                print('Pre-Trained Baseline Model')
-                encoder_checkpoint = torch.load('checkpoints/encoder_baseline')
-                decoder_checkpoint = torch.load('checkpoints/decoder_baseline')
-        else:
-            if cfg.ALBERT_MODEL:
-                print('Pre-Trained ALBERT Model')
-                encoder_checkpoint = torch.load('checkpoints/encoder_albert', map_location='cpu')
-                decoder_checkpoint = torch.load('checkpoints/decoder_albert', map_location='cpu')
-            elif cfg.GLOVE_MODEL:
-                print('Pre-Trained GloVe Model')
-                encoder_checkpoint = torch.load('checkpoints/encoder_glove', map_location='cpu')
-                decoder_checkpoint = torch.load('checkpoints/decoder_glove', map_location='cpu')
-            else:
-                print('Pre-Trained Baseline Model')
-                encoder_checkpoint = torch.load('checkpoints/encoder_fbaseline', map_location='cpu')
-                decoder_checkpoint = torch.load('checkpoints/decoder_baseline', map_location='cpu')
+        print('Pre-Trained Caption Model')
+        encoder_checkpoint = torch.load(cfg.TRAIN.CAP_CNN, map_location=lambda storage, loc: storage)
+        decoder_checkpoint = torch.load(cfg.TRAIN.CAP_RNN, map_location=lambda storage, loc: storage)
 
         encoder.load_state_dict(encoder_checkpoint['model_state_dict'])
         decoder_optimizer = torch.optim.Adam(params=decoder.parameters(), lr=cfg.TRAIN.DECODER_LR)

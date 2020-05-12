@@ -4,6 +4,13 @@ TREE:
   BRANCH_NUM: 1
 
 TRAIN:
-  MAX_EPOCH: 10
+  FLAG: TRUE
+  MAX_EPOCH: 4
   BATCH_SIZE: 32
+  RNN_GRAD_CLIP: 5.
+  DECODER_LR: 4e-4
+  CAP_CNN: '' # No pretrained model
+  CAP_RNN: '' # No pretrained model
 
+TEXT:
+  EMBEDDING_DIM: 256

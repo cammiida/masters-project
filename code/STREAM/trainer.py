@@ -99,7 +99,7 @@ def train(encoder, decoder, decoder_optimizer, criterion, train_loader):
             for group in decoder_optimizer.param_groups:
                 for param in group['params']:
                     if param.grad is not None:
-                        param.grad.data.clamp_(-cfg.STREAM.GRAD_CLIP, cfg.STREAM.GRAD_CLIP)
+                        param.grad.data.clamp_(-cfg.TRAIN.RNN_GRAD_CLIP, cfg.TRAIN.RNN_GRAD_CLIP)
 
             decoder_optimizer.step()
 
