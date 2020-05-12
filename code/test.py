@@ -1,5 +1,5 @@
 from datasets import get_loader
-from datasets import Vocabulary, collate_fn
+from process_data import Vocabulary
 from trainer import Trainer
 from model import Encoder, Decoder, CAPTION_CNN, CAPTION_RNN
 from cfg.config import cfg, cfg_from_file

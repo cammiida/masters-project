@@ -5,8 +5,8 @@ from miscc.utils import build_super_images
 from miscc.losses import sent_loss, words_loss
 from cfg.config import cfg, cfg_from_file
 
-from datasets import Vocabulary
-from datasets import get_loader, collate_fn
+from process_data import Vocabulary
+from datasets import get_loader
 
 from model import RNN_ENCODER, CNN_ENCODER
 

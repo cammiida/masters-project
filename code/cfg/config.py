@@ -55,9 +55,6 @@ __C.TRAIN.SMOOTH.LAMBDA1 = 1.0
 __C.TRAIN.STREAM = edict()
 __C.TRAIN.STREAM.USE_ORIGINAL = False
 __C.TRAIN.STREAM.HIDDEN_SIZE = 512
-# TODO: Make this its own module for preprocessing
-__C.TRAIN.STREAM.PREPROCESS_DATA = True
-
 
 # Modal options
 __C.GAN = edict()

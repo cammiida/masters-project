@@ -8,10 +8,10 @@ import argparse
 
 from cfg.config import cfg, cfg_from_file
 from datasets import get_loader
-from STREAM.data_processer import init_model, process_data
 from STREAM.trainer import train, validate
+from model import Encoder, Decoder
+from process_data import Vocabulary
 
-from datasets import Vocabulary
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Train a STREAM network')
@@ -19,9 +19,30 @@ def parse_args():
                         help='optional config file', type=str)
     parser.add_argument('--data_size', dest='data_size', type=str, default='')
     parser.add_argument('--root_data_dir', dest='root_data_dir', type=str, default='')
-    parser.add_argument('--preprocess', dest='preprocess_data', type=bool, default=False)
     parser.add_argument('--preprocess_threshold', dest='threshold', type=int)
     return parser.parse_args()
+
+
+#############
+# Init model
+#############
+def init_model(vocabulary):
+
+    encoder = Encoder().to(cfg.DEVICE)
+    decoder = Decoder(vocab=vocabulary).to(cfg.DEVICE)
+    if cfg.TRAIN.CAP_CNN and cfg.TRAIN.CAP_RNN:
+        print('Pre-Trained Caption Model')
+        encoder_checkpoint = torch.load(cfg.TRAIN.CAP_CNN, map_location=lambda storage, loc: storage)
+        decoder_checkpoint = torch.load(cfg.TRAIN.CAP_RNN, map_location=lambda storage, loc: storage)
+
+        encoder.load_state_dict(encoder_checkpoint['model_state_dict'])
+        decoder_optimizer = torch.optim.Adam(params=decoder.parameters(), lr=cfg.TRAIN.DECODER_LR)
+        decoder.load_state_dict(decoder_checkpoint['model_state_dict'])
+        decoder_optimizer.load_state_dict(decoder_checkpoint['optimizer_state_dict'])
+    else:
+        decoder_optimizer = torch.optim.Adam(params=decoder.parameters(), lr=cfg.TRAIN.DECODER_LR)
+
+    return encoder, decoder, decoder_optimizer
 
 
 def pretrain_STREAM():
@@ -75,9 +96,6 @@ def set_config_params():
     if torch.cuda.is_available():
         cfg.DEVICE = torch.device('cuda')
 
-    if args.preprocess_data is not None:
-        cfg.TRAIN.STREAM.PREPROCESS_DATA = args.preprocess_data
-
     if args.threshold is not None:
         cfg.VOCAB.THRESHOLD = args.threshold
 
@@ -89,9 +107,6 @@ if __name__ == '__main__':
 
     caption_path = os.path.join(cfg.DATA_DIR, 'annotations/captions_train2014.json')
     vocab_path = os.path.join(cfg.DATA_DIR, 'vocab.pkl')
-
-    if cfg.TRAIN.STREAM.PREPROCESS_DATA:
-        process_data(caption_path, vocab_path)
 
     # Load vocabulary
     with open(vocab_path, 'rb') as f:

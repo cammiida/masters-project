@@ -13,107 +13,8 @@ from datetime import datetime
 from nltk.translate.bleu_score import corpus_bleu
 from tqdm import tqdm
 
-#############
-# Init model
-#############
-def init_model(vocabulary):
 
-    encoder = Encoder().to(cfg.DEVICE)
-    decoder = Decoder(vocab=vocabulary).to(cfg.DEVICE)
-    # TODO: Fix from checkpoint paths
-    if cfg.TRAIN.CAP_CNN and cfg.TRAIN.CAP_RNN:
-
-        print('Pre-Trained Caption Model')
-        encoder_checkpoint = torch.load(cfg.TRAIN.CAP_CNN, map_location=lambda storage, loc: storage)
-        decoder_checkpoint = torch.load(cfg.TRAIN.CAP_RNN, map_location=lambda storage, loc: storage)
-
-        encoder.load_state_dict(encoder_checkpoint['model_state_dict'])
-        decoder_optimizer = torch.optim.Adam(params=decoder.parameters(), lr=cfg.TRAIN.DECODER_LR)
-        decoder.load_state_dict(decoder_checkpoint['model_state_dict'])
-        decoder_optimizer.load_state_dict(decoder_checkpoint['optimizer_state_dict'])
-
-    else:
-        decoder_optimizer = torch.optim.Adam(params=decoder.parameters(), lr=cfg.TRAIN.DECODER_LR)
-
-    return encoder, decoder, decoder_optimizer
-
-# TODO: Move this to its own file so that data can be processed without being linked to training of a model
-def process_data(caption_path, vocab_path):
-    # Create and save vocab
-    print("building vocab...")
-    vocab = build_vocab(json=caption_path)
-    with open(vocab_path, 'wb') as f:
-        pickle.dump(vocab, f)
-
-    print("resizing images...")
-    splits = ['val', 'train']
-
-    for split in splits:
-        folder = os.path.join(cfg.DATA_DIR, '%s2014' % split)
-        resized_folder = os.path.join(cfg.DATA_DIR, '%s2014_resized/' % split)
-        if not os.path.exists(resized_folder):
-            os.makedirs(resized_folder)
-        image_files = os.listdir(folder)
-        num_images = len(image_files)
-        for i, image_file in enumerate(image_files):
-            with open(os.path.join(folder, image_file), 'r+b') as f:
-                with Image.open(f) as image:
-                    image = resize_image(image)
-                    image.save(os.path.join(resized_folder, image_file), image.format)
-
-            if i % 1000 == 0 or i == num_images:
-                print("copied %s/%s images" % (str(i), str(num_images)))
-
-        print("copied %s images in %s folder..." % (str(num_images), split))
-
-    print("done resizing images...")
-
-
-def build_vocab(json):
-    coco = COCO(json)
-    counter = Counter()
-    ids = coco.anns.keys()
-    for i, id in enumerate(tqdm(ids)):
-        caption = str(coco.anns[id]['caption'])
-        # TODO: Can this be done with BERT tokenizer?
-        # tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
-        # tokens = tokenizer.tokenize(caption.lower())
-        tokens = nltk.tokenize.word_tokenize(caption.lower())
-        counter.update(tokens)
-
-    # omit non-frequent words
-    words = [word for word, cnt in counter.items() if cnt >= cfg.VOCAB.THRESHOLD]
-
-    vocab = Vocabulary()
-    vocab.add_word('<pad>') # 0
-    vocab.add_word('<start>') # 1
-    vocab.add_word('<end>') # 2
-    vocab.add_word('<unk>') # 3
-
-    for i, word in enumerate(words):
-        vocab.add_word(word)
-    return vocab
-
-
-def resize_image(image):
-    width, height = image.size
-    # Make square based on the smallest dim
-    if width > height:
-        left = (width - height) / 2
-        right = width - left
-        top = 0
-        bottom = height
-    else:
-        top = (height - width) / 2
-        bottom = height - top
-        left = 0
-        right = width
-    image = image.crop((left, top, right, bottom))
-    # Downsample with high quality (antialias)
-    image = image.resize([224, 224], Image.ANTIALIAS)
-    return image
-
-
+# TODO: Fix paths
 def write_results(vocab, hypotheses, references):
     dirname = './checkpoints/results/'
     if not os.path.isdir(dirname):
@@ -149,7 +50,8 @@ def print_sample(hypotheses, references, test_references, imgs, alphas, k, show_
     print("BLEU-3: " + str(bleu_3))
     print("BLEU-4: " + str(bleu_4))
 
-    write_results(hypotheses, test_references)
+
+    write_results(vocab, hypotheses, test_references)
 
     '''
     img_dim = 336  # 14*24

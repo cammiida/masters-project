@@ -39,6 +39,7 @@ def save_loss_graph(epoch_num, losses, loss_dir):
     loss_path = os.path.join(loss_dir, 'epoch_%d' % epoch_num)
     plt.savefig(loss_path)
 
+
 ###############
 # Train model
 ###############
