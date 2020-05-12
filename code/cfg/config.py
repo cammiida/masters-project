@@ -8,14 +8,14 @@ cfg = __C
 # Dataset name: coco
 __C.DATASET_NAME = 'coco'
 __C.CONFIG_NAME = 'MirrorGAN'
-__C.ROOT_DATA_DIR = '../../data'
+__C.ROOT_DATA_DIR = '../data'
 __C.DATASET_SIZE = 'small'
 __C.DATA_DIR = ''
-__C.MODELS_DIR = '../../models'
+__C.MODELS_DIR = '../models'
 
 __C.DEVICE = 'cpu'
 __C.WORKERS = 8
-__C.OUTPUT_PATH = '../..'
+__C.OUTPUT_PATH = '..'
 __C.RNN_TYPE = 'LSTM'
 __C.B_VALIDATION = False
 

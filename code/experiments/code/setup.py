@@ -128,8 +128,8 @@ def display_img_grid(imgs: torch.Tensor, title='Generated Images'):
     plt.show()
 
 def main():
-    model_path = '../../../../models/'
-    data_path = '../../../../data/'
+    model_path = '../../../models/'
+    data_path = '../../../data/'
     data_size = 'big'
 
 

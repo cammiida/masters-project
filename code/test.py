@@ -16,7 +16,7 @@ from torch.nn.utils.rnn import pack_padded_sequence
 import numpy as np
 
 #cfg_from_file('./cfg/pretrain_STEM.yml')
-cfg.DATA_DIR = '../../data/small'
+cfg.DATA_DIR = '../data/small'
 
 
 batch_size = cfg.TRAIN.BATCH_SIZE
@@ -37,15 +37,15 @@ transform = transforms.Compose([
 # only with big dataset
 
 if load_old_stream:
-    f = open('../../models/big/original_STREAM/vocab.pkl', 'rb')
+    f = open('../models/big/original_STREAM/vocab.pkl', 'rb')
     vocab = pickle.load(f)
 
     caption_cnn = CAPTION_CNN(embed_size=cfg.STREAM.EMBED_SIZE)
     caption_rnn = CAPTION_RNN(embed_size=256, hidden_size=512, vocab_size=len(vocab), num_layers=1)
 
-    cnn_checkpoint = torch.load('../../models/big/original_STREAM/cnn_encoder.pkl', map_location=lambda storage, loc: storage)
+    cnn_checkpoint = torch.load('../models/big/original_STREAM/cnn_encoder.pkl', map_location=lambda storage, loc: storage)
     caption_cnn.load_state_dict(cnn_checkpoint)
-    rnn_checkpoint = torch.load('../../models/big/original_STREAM/rnn_decoder.pkl', map_location=lambda storage, loc: storage)
+    rnn_checkpoint = torch.load('../models/big/original_STREAM/rnn_decoder.pkl', map_location=lambda storage, loc: storage)
     caption_rnn.load_state_dict(rnn_checkpoint)
 else:
     # Load vocabulary
@@ -55,9 +55,9 @@ else:
     caption_rnn = Decoder(vocab)
     caption_cnn = Encoder()
 
-    cnn_checkpoint = torch.load('../../models/small/STREAM/cnn_encoder', map_location=lambda storage, loc: storage)
+    cnn_checkpoint = torch.load('../models/small/STREAM/cnn_encoder', map_location=lambda storage, loc: storage)
     caption_cnn.load_state_dict(cnn_checkpoint['model_state_dict'])
-    rnn_checkpoint = torch.load('../../models/small/STREAM/rnn_decoder', map_location=lambda storage, log: storage)
+    rnn_checkpoint = torch.load('../models/small/STREAM/rnn_decoder', map_location=lambda storage, log: storage)
     caption_rnn.load_state_dict(rnn_checkpoint['model_state_dict'])
 
 
