@@ -136,7 +136,7 @@ if __name__ == '__main__':
     set_config_params()
 
     caption_path = os.path.join(cfg.DATA_DIR, 'annotations/captions_train2014.json')
-    vocab_path = os.path.join(cfg.DATA_DIR, 'vocab.pkl')
+    vocab_path = os.path.join(cfg.DATA_DIR, 'vocab_old.pkl')
 
     # Load vocabulary
     with open(vocab_path, 'rb') as f:

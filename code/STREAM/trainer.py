@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from cfg.config import cfg
-from STREAM.data_processer import print_sample
+from STREAM.data_processer import print_sample, write_results
 from miscc.utils import mkdir_p
 
 # loss
@@ -222,5 +222,9 @@ def validate(encoder, decoder, criterion, val_loader, vocab, output_dir):
             all_alphas.append(alphas)
             all_imgs.append(imgs_jpg)
 
+        #write_results(vocab, hypotheses, references, output_dir)
+        print_sample(hypotheses, references, test_references, all_imgs, all_alphas, i, False, losses, vocab=vocab)
+
     print("Completed validation...")
-    print_sample(hypotheses, references, test_references, all_imgs, all_alphas, 1, False, losses)
+
+    print_sample(hypotheses, references, test_references, all_imgs, all_alphas, 1, False, losses, vocab=vocab)
