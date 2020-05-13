@@ -44,15 +44,8 @@ def save_loss_graph(epoch_num, losses, loss_dir):
 # Train model
 ###############
 
-def train(encoder, decoder, decoder_optimizer, criterion, train_loader):
-    now = datetime.now(dateutil.tz.tzlocal())
-    timestamp = now.strftime('%Y_%m_%d_%H_%M_%S')
-    output_dir = '%s/output/%s/%s_%s_%s' % \
-                 (cfg.OUTPUT_PATH, cfg.DATASET_SIZE,
-                  cfg.DATASET_NAME, cfg.CONFIG_NAME, timestamp)
-
+def train(encoder, decoder, decoder_optimizer, criterion, train_loader, output_dir):
     loss_dir = os.path.join(output_dir, 'Losses')
-    mkdir_p(output_dir)
     mkdir_p(loss_dir)
     print('output_dir: ', output_dir)
 
@@ -164,7 +157,7 @@ def train(encoder, decoder, decoder_optimizer, criterion, train_loader):
 # Validate model
 #################
 
-def validate(encoder, decoder, criterion, val_loader):
+def validate(encoder, decoder, criterion, val_loader, vocab, output_dir):
     references = []
     test_references = []
     hypotheses = []
@@ -177,9 +170,15 @@ def validate(encoder, decoder, criterion, val_loader):
 
     losses = loss_obj()
 
-    num_batches = len(val_loader)
     # Batches
     for i, (imgs, caps, caplens) in enumerate(tqdm(val_loader)):
+
+        # Extract imgs from list
+        imgs = imgs[-1]
+
+        # Skip last batch if it doesn't fit the batch size
+        if len(imgs) != cfg.TRAIN.BATCH_SIZE:
+            break
 
         imgs_jpg = imgs.numpy()
         imgs_jpg = np.swapaxes(np.swapaxes(imgs_jpg, 1, 3), 1, 2)
@@ -214,8 +213,8 @@ def validate(encoder, decoder, criterion, val_loader):
         temp_preds = list()
         for j, p in enumerate(preds):
             pred = p[:decode_lengths[j]]
-            pred = [w for w in pred if w not in [cfg.VOCAB.PAD, cfg.VOCAB.START, cfg.VOCAB.END]]
-            temp_preds.append(pred)  # remove pads, start, and end
+            pred = [w for w in pred if w not in [cfg.VOCAB.PAD, cfg.VOCAB.START, cfg.VOCAB.END]] # remove pad, start, and end
+            temp_preds.append(pred)
         preds = temp_preds
         hypotheses.extend(preds)
 
