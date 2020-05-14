@@ -76,7 +76,6 @@ class Trainer(object):
 
         # cnn_encoder and rnn_encoder
         if cfg.TRAIN.STREAM.USE_ORIGINAL:
-            #caption_cnn = CAPTION_CNN(cfg.TEXT.EMBEDDING_DIM)
             caption_cnn = CAPTION_CNN(embed_size=cfg.TEXT.EMBEDDING_DIM)
             caption_rnn = CAPTION_RNN(embed_size=cfg.TEXT.EMBEDDING_DIM, hidden_size=cfg.TRAIN.STREAM.HIDDEN_SIZE,
                                       vocab_size=len(self.vocab), num_layers=cfg.TREE.BRANCH_NUM)
@@ -279,7 +278,6 @@ class Trainer(object):
                 # Skip last batch in case batch size doesn't divide length of data
                 if i == len(self.data_loader) - 1:
                     break
-                batch_start_t = time.time()
 
                 # (1) Prepare training data and compute text embeddings
                 imgs, captions, cap_lens = data
@@ -342,9 +340,6 @@ class Trainer(object):
 
                 D_losses.append(errD_total.data.item())
                 G_losses.append(errG_total.data.item())
-
-                batch_end_t = time.time()
-                print("Time spent on training for on full batch of size %d: %ds" % (batch_size, batch_end_t-batch_start_t))
 
             end_t = time.time()
 

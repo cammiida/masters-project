@@ -118,8 +118,6 @@ def train(dataloader, cnn_model, rnn_model, batch_size,
         w_total_loss1 += w_loss1.data
         w_loss = w_loss0 + w_loss1
 
-
-
         s_loss0, s_loss1 = \
             sent_loss(sent_code, sent_emb, labels, class_ids=None, batch_size=cfg.TRAIN.BATCH_SIZE)
         s_loss = s_loss0 + s_loss1
@@ -159,7 +157,6 @@ def train(dataloader, cnn_model, rnn_model, batch_size,
             s_total_loss1 = 0
             w_total_loss0 = 0
             w_total_loss1 = 0
-            start_time = time.time()
             # attention Maps
             img_set, _ = \
                 build_super_images(imgs.cpu(), captions, vocab.idx2word, attn_maps, att_sze)
@@ -169,8 +166,6 @@ def train(dataloader, cnn_model, rnn_model, batch_size,
                 im = Image.fromarray(img_set)
                 fullpath = '%s/attention_maps%d.png' % (image_dir, step)
                 im.save(fullpath)
-        end_time = time.time()
-        print("Time spent on training for one full batch of size %d: %ds" % (batch_size, end_time-start_time))
 
     return count, w_losses, s_losses
 

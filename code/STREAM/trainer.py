@@ -64,7 +64,6 @@ def train(encoder, decoder, decoder_optimizer, criterion, train_loader, output_d
 
         # Loop through each batch
         for i, (imgs, caps, cap_lens) in enumerate(tqdm(train_loader)):
-            b_start_t = time.time()
             # Extract imgs from list
             imgs = imgs[-1]
 
@@ -126,9 +125,7 @@ def train(encoder, decoder, decoder_optimizer, criterion, train_loader, output_d
                     'loss': loss,
                 }, os.path.join(output_dir, 'encoder_mid'))
 
-                b_end_t = time.time()
                 print('model saved')
-                print('Time spent on batch: %ds' % (b_end_t - b_start_t))
 
         # save losses to graph
         save_loss_graph(epoch_num=epoch + 1, losses=loss_list, loss_dir=loss_dir)

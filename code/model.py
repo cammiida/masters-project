@@ -748,7 +748,6 @@ class Decoder(nn.Module):
         self.vocab = vocab
         self.encoder_dim = 2048
         self.attention_dim = 512
-        # TODO: Check if this should be 128 for Albert?
         self.embed_dim = 768
         # Load pretrained model tokenizer (vocabulary)
         self.tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
