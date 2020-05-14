@@ -105,10 +105,6 @@ def set_config_params():
     assert cfg.TRAIN.NET_E != '' and cfg.TRAIN.CAP_CNN != '' and cfg.TRAIN.CAP_RNN != '', \
         "Model names must be specified."
 
-    # Set Generator and STEM model paths
-    cfg.TRAIN.NET_G = os.path.join(cfg.MODELS_DIR, cfg.DATASET_SIZE, cfg.TRAIN.NET_G)
-    cfg.TRAIN.NET_E = os.path.join(cfg.MODELS_DIR, cfg.DATASET_SIZE, cfg.TRAIN.NET_E)
-
     # Make sure the right values are set if the original STREAM is used
     if args.use_original_STREAM:
         assert cfg.DATASET_SIZE == 'big', \
@@ -127,6 +123,11 @@ def set_config_params():
     else:
         cfg.TRAIN.CAP_CNN = os.path.join(cfg.MODELS_DIR, cfg.DATASET_SIZE, cfg.TRAIN.CAP_CNN)
         cfg.TRAIN.CAP_RNN = os.path.join(cfg.MODELS_DIR, cfg.DATASET_SIZE, cfg.TRAIN.CAP_RNN)
+
+    # Set Generator and STEM model paths
+    if cfg.TRAIN.NET_G != '':
+        cfg.TRAIN.NET_G = os.path.join(cfg.MODELS_DIR, cfg.DATASET_SIZE, cfg.TRAIN.NET_G)
+    cfg.TRAIN.NET_E = os.path.join(cfg.MODELS_DIR, cfg.DATASET_SIZE, cfg.TRAIN.NET_E)
 
     # Set device
     if torch.cuda.is_available():
