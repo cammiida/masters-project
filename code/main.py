@@ -113,6 +113,7 @@ def set_config_params():
         cfg.TEXT.EMBEDDING_DIM = 256
         cfg.TRAIN.STREAM.USE_ORIGINAL = True
         cfg.TRAIN.STREAM.HIDDEN_SIZE = 512
+        cfg.CONFIG_NAME = cfg.CONFIG_NAME + '_original'
 
     # Set STREAM model paths
     if args.use_original_STREAM:
@@ -146,7 +147,6 @@ if __name__ == '__main__':
     output_dir = '%s/output/%s/%s_%s_%s' % \
                  (cfg.OUTPUT_PATH, cfg.DATASET_SIZE,
                   cfg.DATASET_NAME, cfg.CONFIG_NAME, timestamp)
-
     print('output_dir: ', output_dir)
 
     split_dir, bshuffle = 'train', True
