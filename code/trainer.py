@@ -78,7 +78,7 @@ class Trainer(object):
         if cfg.TRAIN.STREAM.USE_ORIGINAL:
             caption_cnn = CAPTION_CNN(embed_size=cfg.TEXT.EMBEDDING_DIM)
             caption_rnn = CAPTION_RNN(embed_size=cfg.TEXT.EMBEDDING_DIM, hidden_size=cfg.TRAIN.STREAM.HIDDEN_SIZE,
-                                      vocab_size=len(self.vocab), num_layers=cfg.TREE.BRANCH_NUM)
+                                      vocab_size=len(self.vocab), num_layers=cfg.TRAIN.STREAM.NUM_LAYERS)
 
 
             caption_cnn_checkpoint = torch.load(cfg.TRAIN.CAP_CNN, map_location=lambda storage, loc: storage)

@@ -109,7 +109,6 @@ def set_config_params():
     if args.use_original_STREAM:
         assert cfg.DATASET_SIZE == 'big', \
             "Dataset size must be big to use original STREAM"
-        cfg.TREE.BRANCH_NUM = 1
         cfg.TEXT.EMBEDDING_DIM = 256
         cfg.TRAIN.STREAM.USE_ORIGINAL = True
         cfg.TRAIN.STREAM.HIDDEN_SIZE = 512
