@@ -38,11 +38,11 @@ __C.TRAIN.FLAG = True
 __C.TRAIN.VALIDATE = False
 
 # MODEL NAMES
-__C.TRAIN.NET_E = 'STEM/text_encoder.pth'
+__C.TRAIN.NET_E = ''
 __C.TRAIN.NET_G = '' # Train G from checkpoint
 __C.TRAIN.B_NET_D = False # Train Ds from checkpoint
-__C.TRAIN.CAP_CNN = 'STREAM/cnn_encoder.pkl'
-__C.TRAIN.CAP_RNN = 'STREAM/rnn_decoder.pkl'
+__C.TRAIN.CAP_CNN = ''
+__C.TRAIN.CAP_RNN = ''
 
 __C.TRAIN.SMOOTH = edict()
 __C.TRAIN.SMOOTH.GAMMA1 = 5.0

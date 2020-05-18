@@ -25,8 +25,6 @@ def parse_args():
     parser.add_argument('--root_data_dir', dest='root_data_dir', type=str, default='')
     parser.add_argument('--data_size', dest='data_size', type=str, default='')
     parser.add_argument('--manual_seed', type=int, help='manual seed')
-    parser.add_argument('--original_STREAM', dest='use_original_STREAM', type=str2bool, default=False,
-                        help='Argument for using the original STREAM model in the MirrorGAN paper')
     return parser.parse_args()
 
 
@@ -105,24 +103,13 @@ def set_config_params():
     assert cfg.TRAIN.NET_E != '' and cfg.TRAIN.CAP_CNN != '' and cfg.TRAIN.CAP_RNN != '', \
         "Model names must be specified."
 
-    # Make sure the right values are set if the original STREAM is used
-    if args.use_original_STREAM:
+    if cfg.TRAIN.STREAM.USE_ORIGINAL:
         assert cfg.DATASET_SIZE == 'big', \
             "Dataset size must be big to use original STREAM"
-        cfg.TEXT.EMBEDDING_DIM = 256
-        cfg.TRAIN.STREAM.USE_ORIGINAL = True
-        cfg.TRAIN.STREAM.HIDDEN_SIZE = 512
-        cfg.CONFIG_NAME = cfg.CONFIG_NAME + '_original'
 
     # Set STREAM model paths
-    if args.use_original_STREAM:
-        i_cnn = cfg.TRAIN.CAP_CNN.rfind('/')
-        i_rnn = cfg.TRAIN.CAP_RNN.rfind('/')
-        cfg.TRAIN.CAP_CNN = os.path.join(cfg.MODELS_DIR, cfg.DATASET_SIZE, cfg.TRAIN.CAP_CNN[:i_cnn], 'original', cfg.TRAIN.CAP_CNN[i_cnn+1:])
-        cfg.TRAIN.CAP_RNN = os.path.join(cfg.MODELS_DIR, cfg.DATASET_SIZE, cfg.TRAIN.CAP_RNN[:i_rnn], 'original', cfg.TRAIN.CAP_RNN[i_rnn+1:])
-    else:
-        cfg.TRAIN.CAP_CNN = os.path.join(cfg.MODELS_DIR, cfg.DATASET_SIZE, cfg.TRAIN.CAP_CNN)
-        cfg.TRAIN.CAP_RNN = os.path.join(cfg.MODELS_DIR, cfg.DATASET_SIZE, cfg.TRAIN.CAP_RNN)
+    cfg.TRAIN.CAP_CNN = os.path.join(cfg.MODELS_DIR, cfg.DATASET_SIZE, cfg.TRAIN.CAP_CNN)
+    cfg.TRAIN.CAP_RNN = os.path.join(cfg.MODELS_DIR, cfg.DATASET_SIZE, cfg.TRAIN.CAP_RNN)
 
     # Set Generator and STEM model paths
     if cfg.TRAIN.NET_G != '':
