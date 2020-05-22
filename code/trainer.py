@@ -270,13 +270,12 @@ class Trainer(object):
 
         G_losses = []
         D_losses = []
-        gen_iterations = 0
         for epoch in range(start_epoch, self.max_epoch):
             start_t = time.time()
 
-            for i, data in enumerate(tqdm(self.data_loader)):
+            for batch_num, data in enumerate(tqdm(self.data_loader)):
                 # Skip last batch in case batch size doesn't divide length of data
-                if i == len(self.data_loader) - 1:
+                if batch_num == len(self.data_loader) - 1:
                     break
 
                 # (1) Prepare training data and compute text embeddings
@@ -300,20 +299,19 @@ class Trainer(object):
                 # (3) Update D network
                 errD_total = 0
                 D_logs = ''
-                for i in range(len(netsD)):
-                    netsD[i].zero_grad()
-                    errD = discriminator_loss(netsD[i], imgs[i], fake_imgs[i],
+                for j in range(len(netsD)):
+                    netsD[j].zero_grad()
+                    errD = discriminator_loss(netsD[j], imgs[j], fake_imgs[j],
                                               sent_emb, real_labels, fake_labels)
                     # backward and update parameters
                     errD.backward()
-                    optimizersD[i].step()
+                    optimizersD[j].step()
                     errD_total += errD
-                    D_logs += 'errD%d: %.2f ' % (i, errD.data.item())
+                    D_logs += 'errD%d: %.2f ' % (j, errD.data.item())
 
                 # (4) Update G network: maximize log(D(G(z)))
                 # compute total loss for training G
                 #step += 1
-                gen_iterations += 1
                 netG.zero_grad()
                 errG_total, G_logs = \
                     generator_loss(netsD, caption_cnn, caption_rnn, captions, fake_imgs,
@@ -327,16 +325,19 @@ class Trainer(object):
                 for p, avg_p in zip(netG.parameters(), avg_param_G):
                     avg_p.mul_(0.999).add_(0.001, p.data)
 
-                if gen_iterations % 100 == 0:
+                if batch_num % 100 == 0:
                     print(D_logs + '\n' + G_logs)
+
                 # save images
-                if gen_iterations % 1000 == 0:
+                '''
+                if batch_num % 1000 == 0:
                     backup_para = copy_G_params(netG)
                     load_params(netG, avg_param_G)
                     self.save_img_results(netG, fixed_noise, sent_emb,
                                           words_embs, mask, image_encoder,
                                           captions, cap_lens, epoch, name='average')
                     load_params(netG, backup_para)
+                '''
 
                 D_losses.append(errD_total.data.item())
                 G_losses.append(errG_total.data.item())
