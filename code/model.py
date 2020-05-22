@@ -819,7 +819,7 @@ class Decoder(nn.Module):
             for full_token in split_cap:
                 curr_token = ''
                 x = 0
-                for i, _ in enumerate(tokenized_cap[1:]):  # disregard CLS
+                for i, _ in enumerate(tokenized_cap):
                     token = tokenized_cap[i+j]
                     piece_embedding = bert_embedding[i+j]
 
@@ -832,6 +832,9 @@ class Decoder(nn.Module):
                         x += 1
                         if curr_token == '':
                             tokens_embedding.append(piece_embedding)
+                            curr_token += token.replace('#', '')
+                        else:
+                            tokens_embedding[-1] = torch.add(tokens_embedding[-1], piece_embedding)
                             curr_token += token.replace('#', '')
 
                             if curr_token == full_token:  # end of partial
