@@ -28,15 +28,17 @@ def get_imgs(img_path, imsize, bbox=None, transform=None, normalize=None):
         img = transform(img)
 
     ret = []
+    '''
     if cfg.GAN.B_DCGAN:
         ret = [normalize(img)]
     else:
-        for i in range(cfg.TREE.BRANCH_NUM):
-            if i < (cfg.TREE.BRANCH_NUM - 1):
-                re_img = transforms.Resize(imsize[i])(img)
-            else:
-                re_img = img
-            ret.append(normalize(re_img))
+    '''
+    for i in range(cfg.TREE.BRANCH_NUM):
+        if i < (cfg.TREE.BRANCH_NUM - 1):
+            re_img = transforms.Resize(imsize[i])(img)
+        else:
+            re_img = img
+        ret.append(normalize(re_img))
 
     # ret contains an array with a one or more tensors (images) inside.
     return ret
