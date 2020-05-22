@@ -108,6 +108,8 @@ def collate_fn(batch):
         end = lengths[i]
         targets[i, :end] = cap[:end]
 
+    lengths = torch.tensor(lengths)
+
     return images, targets, lengths
 
 

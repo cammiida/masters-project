@@ -781,8 +781,10 @@ class Decoder(nn.Module):
         batch_size = encoder_out.size(0)
         encoder_dim = encoder_out.size(-1)
         vocab_size = self.vocab_size
-        dec_len = [x-1 for x in caption_lengths]
-        max_dec_len = max(dec_len)
+        #dec_len = [int(x.item()-1) for x in caption_lengths]
+        #print("dec_len: ", dec_len)
+        dec_len = caption_lengths
+        max_dec_len = torch.max(dec_len).item()
 
         encoder_out = encoder_out.view(batch_size, -1, encoder_dim)
         num_pixels = encoder_out.size(1)
@@ -850,8 +852,8 @@ class Decoder(nn.Module):
         predictions = torch.zeros(batch_size, max_dec_len, vocab_size).to(cfg.DEVICE)
         alphas = torch.zeros(batch_size, max_dec_len, num_pixels).to(cfg.DEVICE)
 
-        for t in range(max(dec_len)):
-            batch_size_t = sum([l > t for l in dec_len])
+        for t in range(max_dec_len):
+            batch_size_t = sum([l.item() > t for l in dec_len])
 
             # soft-attention
             enc_att = self.enc_att(encoder_out[:batch_size_t])
