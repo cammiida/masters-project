@@ -34,6 +34,7 @@ def parse_args():
     parser.add_argument('--train', dest='train', type=str2bool)
     parser.add_argument('--val', dest='validate', type=str2bool)
     parser.add_argument('--preprocess_threshold', dest='threshold', type=int)
+    parser.add_argument('--vocab_name', dest='vocab_name', type=str, default='vocab.pkl')
     return parser.parse_args()
 
 
@@ -88,12 +89,19 @@ def get_sentences(hypotheses, test_references, vocab):
 
     return new_hypotheses, new_references
 
-
-def print_sample(hypotheses, references, test_references, imgs, alphas, k, show_att, losses, vocab):
+def calculate_bleu_scores(hypotheses, references):
     bleu_1 = corpus_bleu(references, hypotheses, weights=(1, 0, 0, 0))
     bleu_2 = corpus_bleu(references, hypotheses, weights=(0, 1, 0, 0))
     bleu_3 = corpus_bleu(references, hypotheses, weights=(0, 0, 1, 0))
     bleu_4 = corpus_bleu(references, hypotheses, weights=(0, 0, 0, 1))
+
+    return bleu_1, bleu_2, bleu_3, bleu_4
+
+def print_sample(hypotheses, references, test_references, imgs, alphas, k, show_att, losses, vocab):
+
+    bleu_1, bleu_2, bleu_3, bleu_4 = calculate_bleu_scores(hypotheses, references)
+    print(references[0][0])
+    print("test_references: ", test_references)
 
     print("BLEU-1: " + str(bleu_1))
     print("BLEU-2: " + str(bleu_2))
@@ -102,15 +110,6 @@ def print_sample(hypotheses, references, test_references, imgs, alphas, k, show_
     print("Validation loss: " + str(losses.avg))
     print("len hypotheses", len(hypotheses))
 
-    hyp_sentence = []
-    print(hypotheses[k])
-    for word_idx in hypotheses[k]:
-        hyp_sentence.append(vocab.idx2word[word_idx])
-
-
-    print(hyp_sentence)
-
-    '''
     cleaned_hypotheses = []
     cleaned_references = []
     for k in range(len(hypotheses)):
@@ -127,18 +126,27 @@ def print_sample(hypotheses, references, test_references, imgs, alphas, k, show_
 
         cleaned_hypotheses.append(hyp_sentence)
         cleaned_references.append(ref_sentence)
-        #print('Hypotheses: ' + hyp_sentence)
-        #print('References: ' + join
 
-    print(cleaned_hypotheses)
-    print(cleaned_references)
-    '''
+    print("hypotheses: ", cleaned_hypotheses)
+    print("references: ", cleaned_references)
+
 
     #hypotheses, test_references = get_sentences(hypotheses, test_references, vocab)
-
+    return bleu_1, bleu_2, bleu_3, bleu_4
 
 # loss
 class loss_obj(object):
+    def __init__(self):
+        self.avg = 0.
+        self.sum = 0.
+        self.count = 0.
+
+    def update(self, val, n=1):
+        self.sum += val * n
+        self.count += n
+        self.avg = self.sum / self.count
+
+class bleu_obj(object):
     def __init__(self):
         self.avg = 0.
         self.sum = 0.
@@ -276,20 +284,24 @@ def train(caption_cnn, caption_rnn, decoder_optimizer, criterion, train_loader, 
 #################
 
 def validate(caption_cnn, caption_rnn, criterion, val_loader, vocab, output_dir, version):
-    references = []
-    test_references = []
-    hypotheses = []
-    all_imgs = []
-    all_alphas = []
-
     print("Started validation...")
     caption_cnn.eval()
     caption_rnn.eval()
 
     losses = loss_obj()
+    bleu_1 = bleu_obj()
+    bleu_2 = bleu_obj()
+    bleu_3 = bleu_obj()
+    bleu_4 = bleu_obj()
 
     # Batches
     for i, (imgs, captions, cap_lens) in enumerate(tqdm(val_loader)):
+        references = []
+        test_references = []
+        hypotheses = []
+        all_imgs = []
+        all_alphas = []
+
 
         # Extract imgs from list
         imgs = imgs[-1]
@@ -309,26 +321,9 @@ def validate(caption_cnn, caption_rnn, criterion, val_loader, vocab, output_dir,
         if cfg.TRAIN.STREAM.USE_ORIGINAL:
             print('Using original STREAM for validation')
             targets = captions
-            print("cap_lens: ", cap_lens)
             targets_packed = pack_padded_sequence(captions, cap_lens, batch_first=True)[0]
             scores_packed = caption_rnn(encoder_features, captions, cap_lens) # 418 x 9956
-            #scores_packed = scores
-            #print(scores.shape)
-            print('targets: ', targets.shape)
-            # Target shape: batch x len longest sequence
-            print('scores_packed shape: ', scores_packed.shape)
-
-            # PAD scores
-
-            scores = torch.zeros(cfg.TRAIN.BATCH_SIZE, targets.shape[1], 9956)
-            print('scores shape: ', scores.shape)
-            start = 0
-            for i in range(len(scores)):
-                end = start + cap_lens[i]
-                scores[i][:cap_lens[i], :] = scores_packed[start:end, :]
-                start = end
-
-
+            scores = scores_packed
         else:
             scores, caps_sorted, decode_lengths, alphas = caption_rnn(encoder_features, captions, cap_lens)
             targets = caps_sorted
@@ -337,19 +332,11 @@ def validate(caption_cnn, caption_rnn, criterion, val_loader, vocab, output_dir,
             scores_packed = pack_padded_sequence(scores, decode_lengths, batch_first=True)[0]
             targets_packed = pack_padded_sequence(targets, decode_lengths, batch_first=True)[0]
 
-        print('scores: ', scores.shape)
-        print('scores packed: ', scores_packed.shape)
-        print('targets: ', targets.shape)
-        print('targets packed: ', targets_packed.shape)
-
         cap_loss = caption_loss(scores_packed, targets_packed) * cfg.TRAIN.SMOOTH.LAMBDA1
         if not cfg.TRAIN.STREAM.USE_ORIGINAL:
             cap_loss += ((1. - alphas.sum(dim=1)) ** 2).mean()
-        print('cap_loss: ', cap_loss)
         losses.update(cap_loss.item(), sum(cap_lens))
 
-
-        print(targets.shape)
         # References
         for j in range(targets.shape[0]):
             img_caps = targets[j].tolist()  # validation dataset only has 1 unique caption per img
@@ -359,34 +346,42 @@ def validate(caption_cnn, caption_rnn, criterion, val_loader, vocab, output_dir,
             references.append(img_captions)
 
         # Hypotheses
-        #if cfg.TRAIN.STREAM.USE_ORIGINAL:
-        #    preds = caption_rnn.sample(encoder_features)
+        if cfg.TRAIN.STREAM.USE_ORIGINAL:
+            preds = caption_rnn.sample(encoder_features)
+        else:
+            _, preds = torch.max(scores, dim=2)
+            if i == 0:
+                all_alphas.append(alphas)
+                all_imgs.append(imgs_jpg)
 
-        #else:
-        print("scores: ", scores)
-        _, preds = torch.max(scores, dim=2)
-        print("preds: ", preds)
-        print("preds shape: ", preds.shape)
         preds = preds.tolist()
         temp_preds = list()
         for j, p in enumerate(preds):
             pred = p[:cap_lens[j]]
             pred = [w for w in pred if w not in [cfg.VOCAB.PAD, cfg.VOCAB.START, cfg.VOCAB.END]]
+            if cfg.TRAIN.STREAM.USE_ORIGINAL:
+                pred = [w for w in pred if w != 96]
             temp_preds.append(pred)  # remove pads, start, and end
         preds = temp_preds
         hypotheses.extend(preds)
-        print("hypotheses: ", hypotheses)
-
-        if i == 0:
-            all_alphas.append(alphas)
-            all_imgs.append(imgs_jpg)
 
 
-        print_sample(hypotheses, references, test_references, all_imgs, all_alphas, i, False, losses, vocab=vocab)
+        score_1, score_2, score_3, score_4 = calculate_bleu_scores(hypotheses, references)
+        bleu_1.update(score_1)
+        bleu_2.update(score_2)
+        bleu_3.update(score_3)
+        bleu_4.update(score_4)
+
+        if i % 10 == 0 or i == len(val_loader)-1:
+            print("BLEU averages: ")
+            print("BLEU-1: " + str(bleu_1.avg))
+            print("BLEU-2: " + str(bleu_2.avg))
+            print("BLEU-3: " + str(bleu_3.avg))
+            print("BLEU-4: " + str(bleu_4.avg))
+            print("Validation loss: " + str(losses.avg))
+            print_sample(hypotheses, references, test_references, all_imgs, all_alphas, 1, False, losses, vocab)
 
     print("Completed validation...")
-
-    print_sample(hypotheses, references, test_references, all_imgs, all_alphas, 1, False, losses, vocab=vocab)
 
 
 def caption_loss(cap_output, captions):
@@ -482,8 +477,7 @@ def pretrain_STREAM():
                      val_loader=val_loader, vocab=vocab, output_dir=output_dir, version=version)
 
 
-def set_config_params():
-    args = parse_args()
+def set_config_params(args):
     if args.cfg_file != '':
         cfg_from_file(args.cfg_file)
 
@@ -518,11 +512,12 @@ def set_config_params():
     pprint.pprint(cfg)
 
 if __name__ == '__main__':
-    set_config_params()
+    args = parse_args()
+    set_config_params(args)
 
     caption_path = os.path.join(cfg.DATA_DIR, 'annotations/captions_train2014.json')
     # TODO: Change back to cfg.DATA_DIR
-    vocab_path = os.path.join(cfg.ROOT_DATA_DIR, 'big', 'vocab.pkl')
+    vocab_path = os.path.join(cfg.ROOT_DATA_DIR, 'big', args.vocab_name)
 
     # Load vocabulary
     with open(vocab_path, 'rb') as f:
