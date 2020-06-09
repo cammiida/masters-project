@@ -243,3 +243,4 @@ models
 output
 losses
 jobs/output
+code/test*.py
