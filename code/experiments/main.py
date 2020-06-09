@@ -13,6 +13,7 @@ from tqdm import tqdm
 
 from experiments.experimenter import Experimenter
 from miscc.utils import mkdir_p
+#from inception_score.inception_score import inception_score
 
 
 def gen_out_path(output_dir: str, version: str, sent_type: str, epoch: int, title: str):
@@ -34,23 +35,6 @@ def gen_out_path(output_dir: str, version: str, sent_type: str, epoch: int, titl
     output_path = os.path.join(output_dir, file_name)
     print('output_path: ', output_path)
     return output_path
-
-
-def gen_pil_imgs(imgs: torch.Tensor) -> list:
-    """
-    :param imgs: torch tensor with size: batch x channels x height x width
-    :return: list of PIL Images
-    """
-    pil_imgs = []
-    for img in imgs:
-        im = img.data.cpu().numpy()
-        im = (im + 1.0) * 127.5
-        im = im.astype(np.uint8)
-        im = np.transpose(im, (1, 2, 0))
-        im = Image.fromarray(im)
-        pil_imgs.append(im)
-
-    return pil_imgs
 
 
 def save_img_grid(imgs: torch.Tensor, epoch: int, version: str, sent_type: str, output_dir: str, title='Generated Images'):
@@ -90,6 +74,18 @@ def display_img_grid(imgs: torch.Tensor, title='Generated Images'):
 
     plt.show()
 
+'''
+def calculate_inception_score(imgs):
+    print('Calculating inception score...')
+    print('imgs.shape[-1]: ', imgs[-1].shape)
+
+    # Normalize values to be between 0 and 1
+    imgs -= imgs.min(1, keepdim=True)[0]
+    imgs /= imgs.max(1, keepdim=True)[0]
+
+    mean, std = inception_score(imgs=imgs, cuda=False, batch_size=1, resize=True)
+    print('i_score, mean, std: ', mean, std)
+'''
 
 ###############
 # EXPERIMENTS #
@@ -98,8 +94,9 @@ def display_img_grid(imgs: torch.Tensor, title='Generated Images'):
 def mul_img_one_sent(experimenter: Experimenter, sentence: str, epoch: int, num_imgs: int, output_dir: str, version: str, sent_type: str):
     imgs = torch.zeros(num_imgs, 3, 256, 256)
     for i in range(num_imgs):
-        imgs[i] = experimenter.generate_images([sentence], epoch=epoch)[-1]
+        imgs[i] = experimenter.generate_images(epoch, sentences=[sentence])[-1]
 
+    #i_score = calculate_inception_score(imgs)
     save_img_grid(imgs=imgs, output_dir=output_dir, epoch=epoch, version=version, sent_type=sent_type, title=sentence)
     return imgs
 
@@ -118,7 +115,7 @@ def mul_imgs_mul_sent(experimenter: Experimenter, sentences: dict, epoch: int, n
 
 def exp(experimenter: Experimenter, sentences: dict, start_epoch: int, max_epoch: int, epoch_inc: int,
         version: str, sent_type: str, output_dir: str, num_imgs: int = 4):
-    epochs = [i * epoch_inc for i in range((max_epoch - start_epoch)//epoch_inc + 1)]
+    epochs = [(i * epoch_inc) + start_epoch for i in range((max_epoch - start_epoch)//epoch_inc + 1)]
     sentences = sentences[sent_type]
     img_dict = {}
     for epoch in tqdm(epochs):
@@ -129,8 +126,8 @@ def exp(experimenter: Experimenter, sentences: dict, start_epoch: int, max_epoch
 
 # Parameters
 sentence_category = 'descriptive'
-start_epoch = 0
-max_epoch = 34
+start_epoch = 10
+max_epoch = 50
 epoch_inc = 10
 num_imgs = 4
 
@@ -157,11 +154,11 @@ sentences = {
         'A street that goes on to a high way with the light on red.',
         'A large white teddy bear sitting on top of an SUV.',
         'A stationary train with the door wide open.',
-        #'A train on some tracks with power lines above it.',
-        #'An old truck carrying luggage at the back',
+            #'A train on some tracks with power lines above it.',
+            #'An old truck carrying luggage at the back',
         'A lamp with a shade sitting on top of an older model television.',
-        #'A pot filled with some liquid and parchment paper.',
-        #'A hand holding a smart phone with apps on a screen.'
+            #'A pot filled with some liquid and parchment paper.',
+            #'A hand holding a smart phone with apps on a screen.'
     ],
     'nondescriptive': [
         'It is utterly terrific that he got accepted to that school.',
@@ -176,16 +173,16 @@ sentences = {
 exp(experimenter_new, sentences, start_epoch=start_epoch, max_epoch=max_epoch,
     epoch_inc=epoch_inc, version='new', sent_type='descriptive', output_dir=output_dir, num_imgs=num_imgs)
 
-#exp(experimenter_original, sentences, start_epoch=start_epoch, max_epoch=max_epoch,
-#    epoch_inc=epoch_inc, version='original', sent_type='descriptive', output_dir=output_dir, num_imgs=num_imgs)
+exp(experimenter_original, sentences, start_epoch=start_epoch, max_epoch=max_epoch,
+    epoch_inc=epoch_inc, version='original', sent_type='descriptive', output_dir=output_dir, num_imgs=num_imgs)
 
 
 # NONDESCRIPTIVE SENTENCES
 exp(experimenter_new, sentences, start_epoch=start_epoch, max_epoch=max_epoch,
     epoch_inc=epoch_inc, version='new', sent_type='nondescriptive', output_dir=output_dir, num_imgs=num_imgs)
 
-#exp(experimenter_original, sentences, start_epoch=start_epoch, max_epoch=max_epoch,
-#    epoch_inc=epoch_inc, version='original', sent_type='nondescriptive', output_dir=output_dir, num_imgs=num_imgs)
+exp(experimenter_original, sentences, start_epoch=start_epoch, max_epoch=max_epoch,
+    epoch_inc=epoch_inc, version='original', sent_type='nondescriptive', output_dir=output_dir, num_imgs=num_imgs)
 
 
 
