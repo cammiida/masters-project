@@ -1,0 +1,38 @@
+CONFIG_NAME: 'STEM'
+
+CONFIG_NAME: 'MirrorGAN'
+DATASET_NAME: 'coco'
+DATA_DIR: '../data/'
+GPU_ID: -1
+WORKERS: 4
+OUTPUT_PATH: '../output/STEM/'
+TREE:
+    BRANCH_NUM: 3
+
+TRAIN:
+    FLAG: True
+    NET_G: ''
+    B_NET_D: True
+    BATCH_SIZE: 48
+    MAX_EPOCH: 600
+    SNAPSHOT_INTERVAL: 5
+    ENCODER_LR: 0.002  # 0.0002best; 0.002good
+    DISCRIMINATOR_LR: 0.0002
+    GENERATOR_LR: 0.0002
+    RNN_GRAD_CLIP: 0.25
+
+
+    NET_E: ''
+    SMOOTH:
+        GAMMA1: 4.0  # 1,2,5 good 4 best  10&100bad
+        GAMMA2: 5.0
+        GAMMA3: 10.0  # 10good 1&100bad
+        LAMBDA: 0.0
+        LAMBDA1: 10.0
+
+TEXT:
+    EMBEDDING_DIM: 256
+    CAPTIONS_PER_IMAGE: 5
+TREE:
+    BRANCH_NUM: 1
+    BASE_SIZE: 299
