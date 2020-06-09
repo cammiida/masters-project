@@ -254,8 +254,10 @@ def main():
     batch_size = cfg.TRAIN.BATCH_SIZE
 
     # Get data loaders ###################################################
-    train_loader = get_loader('train', vocab, batch_size, transform)
-    val_loader = get_loader('val', vocab, batch_size, transform)
+    train_loader = get_loader(cfg.DATA_DIR, 'train', vocab, batch_size, transform, tree_base_size=cfg.TREE.BASE_SIZE,
+                              tree_branch_num=cfg.TREE.BRANCH_NUM)
+    val_loader = get_loader(cfg.DATA_DIR, 'val', vocab, batch_size, transform, tree_base_size=cfg.TREE.BASE_SIZE,
+                            tree_branch_num=cfg.TREE.BRANCH_NUM)
 
     # Train ##############################################################
     text_encoder, image_encoder, labels, start_epoch = build_models()

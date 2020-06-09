@@ -1,5 +1,3 @@
-from cfg.config import cfg
-
 import torch
 import torch.utils.data
 import torchvision.transforms as transforms
@@ -11,7 +9,7 @@ from PIL import Image
 from pycocotools.coco import COCO
 
 
-def get_imgs(img_path, imsize, bbox=None, transform=None, normalize=None):
+def get_imgs(img_path, imsize, branc_num, bbox=None, transform=None, normalize=None):
     img = Image.open(img_path).convert('RGB')
     width, height = img.size
     if bbox is not None:
@@ -28,13 +26,8 @@ def get_imgs(img_path, imsize, bbox=None, transform=None, normalize=None):
         img = transform(img)
 
     ret = []
-    '''
-    if cfg.GAN.B_DCGAN:
-        ret = [normalize(img)]
-    else:
-    '''
-    for i in range(cfg.TREE.BRANCH_NUM):
-        if i < (cfg.TREE.BRANCH_NUM - 1):
+    for i in range(branc_num):
+        if i < (branc_num - 1):
             re_img = transforms.Resize(imsize[i])(img)
         else:
             re_img = img
@@ -45,12 +38,13 @@ def get_imgs(img_path, imsize, bbox=None, transform=None, normalize=None):
 
 
 class DataLoader(torch.utils.data.Dataset):
-    def __init__(self, root, json, vocab, transform=None, norm=None):
+    def __init__(self, root, json, vocab, transform=None, norm=None, tree_base_size=64, tree_branch_num=3):
         self.root = root
         self.coco = COCO(json)
         self.ids = list(self.coco.anns.keys())
         self.vocab = vocab
         self.transform = transform
+        self.branch_num = tree_branch_num
         if norm is not None:
             self.norm = norm
         else:
@@ -58,8 +52,8 @@ class DataLoader(torch.utils.data.Dataset):
                 transforms.ToTensor(),
                 transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
         self.imsize = []
-        base_size = cfg.TREE.BASE_SIZE
-        for i in range(cfg.TREE.BRANCH_NUM):
+        base_size = tree_base_size
+        for i in range(tree_branch_num):
             self.imsize.append(base_size)
             base_size *= 2
 
@@ -73,10 +67,9 @@ class DataLoader(torch.utils.data.Dataset):
         path = coco.loadImgs(img_id)[0]['file_name']
 
         img_path = os.path.join(self.root, path)
-        image = get_imgs(img_path, self.imsize,
+        image = get_imgs(img_path, self.imsize, self.branch_num,
                          transform=self.transform, normalize=self.norm)
 
-        # TODO: Change this to BERT
         tokens = nltk.tokenize.word_tokenize(str(caption).lower())
         caption = list()
         caption.append(vocab('<start>'))
@@ -115,8 +108,7 @@ def collate_fn(batch):
     return images, targets, lengths
 
 
-def get_loader(method, vocab, batch_size, transform, norm=None):
-    root_dir = cfg.DATA_DIR
+def get_loader(root_dir, method, vocab, batch_size, transform, norm=None, tree_base_size=64, tree_branch_num=3):
     root = None
     json = None
     # train/validation paths
@@ -128,7 +120,8 @@ def get_loader(method, vocab, batch_size, transform, norm=None):
         json = os.path.join(root_dir, 'annotations/captions_val2014.json')
 
 
-    coco = DataLoader(root=root, json=json, vocab=vocab, transform=transform, norm=norm)
+    coco = DataLoader(root=root, json=json, vocab=vocab, transform=transform, norm=norm,
+                      tree_base_size=tree_base_size, tree_branch_num=tree_branch_num)
 
     data_loader = torch.utils.data.DataLoader(dataset=coco,
                                               batch_size=batch_size,

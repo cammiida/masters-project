@@ -152,8 +152,8 @@ class RNN_ENCODER(nn.Module):
         emb = self.drop(self.encoder(captions))
         #
         # Returns: a PackedSequence object
-        if isinstance(cap_lens, torch.Tensor):
-            cap_lens = cap_lens.data.tolist()
+        #if isinstance(cap_lens, torch.Tensor):
+        #    cap_lens = cap_lens.data.tolist()
         emb = pack_padded_sequence(emb, cap_lens, batch_first=True)
         # #hidden and memory (num_layers * num_directions, batch, hidden_size):
         # tensor containing the initial hidden state for each element in batch.
@@ -689,7 +689,7 @@ class CAPTION_CNN(nn.Module):
         return features
 
 class CAPTION_RNN(nn.Module):
-    def __init__(self, embed_size, hidden_size, vocab_size, num_layers, max_seq_length=20):
+    def __init__(self, embed_size, hidden_size, vocab_size, num_layers, max_seq_length=30):
         """Set the hyper-parameters and build the layers."""
         super(CAPTION_RNN, self).__init__()
         self.embed = nn.Embedding(vocab_size, embed_size)
@@ -743,12 +743,12 @@ class Encoder(nn.Module):
 
 
 class Decoder(nn.Module):
-    def __init__(self, vocab):
+    def __init__(self, idx2word):
         super(Decoder, self).__init__()
-        self.vocab = vocab
         self.encoder_dim = 2048
         self.attention_dim = 512
         self.embed_dim = 768
+        self.idx2word = idx2word
         # Load pretrained model tokenizer (vocabulary)
         self.tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
         # Load pre-trained model (weights)
@@ -757,7 +757,7 @@ class Decoder(nn.Module):
         self.model.eval()
 
         self.decoder_dim = 512
-        self.vocab_size = len(vocab)
+        self.vocab_size = len(idx2word)
         self.dropout_rate = 0.5
 
         # soft attention
@@ -798,7 +798,7 @@ class Decoder(nn.Module):
             while len(cap_idx) < max_dec_len:
                 cap_idx.append(cfg.VOCAB.PAD)
 
-            cap = ' '.join([self.vocab.idx2word[word_idx.item()] for word_idx in cap_idx])
+            cap = ' '.join([self.idx2word[word_idx.item()] for word_idx in cap_idx])
             cap = u'[CLS] '+cap
 
             tokenized_cap = tokenizer.tokenize(cap)

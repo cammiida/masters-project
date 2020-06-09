@@ -1,7 +1,7 @@
 from __future__ import print_function
 
 from cfg.config import cfg, cfg_from_file
-from datasets import get_loader, collate_fn
+from datasets import get_loader
 from process_data import Vocabulary
 from trainer import Trainer
 from miscc.utils import str2bool
@@ -159,7 +159,8 @@ if __name__ == '__main__':
 
 
     # Load data
-    train_loader = get_loader('train', vocab, cfg.TRAIN.BATCH_SIZE, transform=transform)
+    train_loader = get_loader(cfg.DATA_DIR, 'train', vocab, cfg.TRAIN.BATCH_SIZE, transform=transform,
+                              tree_base_size=cfg.TREE.BASE_SIZE, tree_branch_num=cfg.TREE.BRANCH_NUM)
     # train(encoder=enc, decoder=dec, decoder_optimizer=dec_optim,
     #      criterion=crit, train_loader=train_loader)
     algo = Trainer(output_dir, train_loader, vocab=vocab)

@@ -72,8 +72,8 @@ def words_loss(img_features, words_emb, labels,
     att_maps = []
     similarities = []
 
-    if (isinstance(cap_lens, torch.Tensor)):
-        cap_lens = cap_lens.data.tolist()
+    #if (isinstance(cap_lens, torch.Tensor)):
+    #    cap_lens = cap_lens.data.tolist()
     for i in range(batch_size):
         if class_ids is not None:
             mask = (class_ids == class_ids[i]).astype(np.uint8)
@@ -191,8 +191,8 @@ def generator_loss(netsD, caption_cnn, caption_rnn, captions, fake_imgs,
             fakeimg_feature = caption_cnn(fake_imgs[i])
             captions.to(cfg.DEVICE)
 
-            if isinstance(cap_lens, torch.Tensor):
-                cap_lens = cap_lens.data.tolist()
+            #if isinstance(cap_lens, torch.Tensor):
+            #    cap_lens = cap_lens.data.tolist()
 
             if cfg.TRAIN.STREAM.USE_ORIGINAL:
                 targets = pack_padded_sequence(captions, cap_lens, batch_first=True)[0]
@@ -203,8 +203,8 @@ def generator_loss(netsD, caption_cnn, caption_rnn, captions, fake_imgs,
                 scores, caps_sorted, decode_lengths, alphas = caption_rnn(fakeimg_feature, captions, cap_lens)
                 scores = pack_padded_sequence(scores, decode_lengths, batch_first=True)[0].to(cfg.DEVICE)
 
-                targets = caps_sorted[:, 1:]
-                targets = pack_padded_sequence(targets, decode_lengths, batch_first=True)[0].to(cfg.DEVICE)
+                #targets = caps_sorted[:, 1:]
+                targets = pack_padded_sequence(caps_sorted, decode_lengths, batch_first=True)[0].to(cfg.DEVICE)
 
                 cap_loss = caption_loss(scores, targets) * cfg.TRAIN.SMOOTH.LAMBDA1
 
