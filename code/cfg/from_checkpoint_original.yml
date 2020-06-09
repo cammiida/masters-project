@@ -2,7 +2,7 @@ CONFIG_NAME: 'MirrorGAN_fc_original'
 
 TRAIN:
     FLAG: True
-    NET_G: 'MirrorGAN/original/netG_epoch_11.pth' # Change this to the path to the newest generator
+    NET_G: 'MirrorGAN/original/netG_epoch_49.pth' # Change this to the path to the newest generator
     NET_E: 'STEM/text_encoder.pth'
     B_NET_D: True
     CAP_CNN: 'STREAM/original/cnn_encoder.pkl'

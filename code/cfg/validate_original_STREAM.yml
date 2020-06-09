@@ -1,5 +1,7 @@
 CONFIG_NAME: 'STREAM'
 
+DATASET_SIZE: 'big'
+
 TREE:
   BRANCH_NUM: 1
 
@@ -9,13 +11,16 @@ TRAIN:
   BATCH_SIZE: 32
   RNN_GRAD_CLIP: 5.
   DECODER_LR: 0.0004
-  CAP_CNN: 'STREAM/new/cnn_encoder.pkl'
-  CAP_RNN: 'STREAM/new/rnn_decoder.pkl' # TODO: Make this automatic in script?
+  CAP_CNN: 'STREAM/original/cnn_encoder.pkl'
+  CAP_RNN: 'STREAM/original/rnn_decoder.pkl' # TODO: Make this automatic in script?
 
   STREAM:
-    USE_ORIGINAL: False
+    USE_ORIGINAL: True
     HIDDEN_SIZE: 512
     NUM_LAYERS: 1
 
 TEXT:
   EMBEDDING_DIM: 256
+
+VOCAB:
+  NAME: 'vocab_original_STREAM.pkl'

@@ -1,5 +1,7 @@
 CONFIG_NAME: 'STREAM'
 
+DATASET_SIZE: 'big'
+
 TREE:
   BRANCH_NUM: 1
 
@@ -19,3 +21,6 @@ TRAIN:
 
 TEXT:
   EMBEDDING_DIM: 256
+
+VOCAB:
+  NAME: 'vocab.pkl'

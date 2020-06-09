@@ -49,7 +49,6 @@ class Trainer(object):
         #####################
 
         image_encoder = CNN_ENCODER(cfg.TEXT.EMBEDDING_DIM)
-        print('image_encoder: ', image_encoder)
         img_encoder_path = cfg.TRAIN.NET_E.replace('text_encoder', 'image_encoder')
         state_dict = \
             torch.load(img_encoder_path, map_location=lambda storage, loc: storage)

@@ -29,12 +29,11 @@ def parse_args():
     parser = argparse.ArgumentParser(description='Train a STREAM network')
     parser.add_argument('--cfg', dest='cfg_file', default='cfg/validate_STREAM.yml',
                         help='optional config file', type=str)
-    parser.add_argument('--data_size', dest='data_size', type=str, default='small')
+    parser.add_argument('--data_size', dest='data_size', type=str)
     parser.add_argument('--root_data_dir', dest='root_data_dir', type=str, default='../data')
     parser.add_argument('--train', dest='train', type=str2bool)
     parser.add_argument('--val', dest='validate', type=str2bool)
     parser.add_argument('--preprocess_threshold', dest='threshold', type=int)
-    parser.add_argument('--vocab_name', dest='vocab_name', type=str, default='vocab.pkl')
     return parser.parse_args()
 
 
@@ -488,7 +487,7 @@ def set_config_params(args):
 
     if args.root_data_dir != '':
         cfg.ROOT_DIR = args.root_data_dir
-    if args.data_size != '':
+    if args.data_size:
         cfg.DATASET_SIZE = args.data_size
 
     cfg.DATA_DIR = os.path.join(cfg.ROOT_DATA_DIR, cfg.DATASET_SIZE)
@@ -497,9 +496,8 @@ def set_config_params(args):
         assert cfg.MODELS_DIR != '', \
             "Directory for models must be set."
 
-        # TODO: Change from big to cfg.DATASET_SIZE
-        cfg.TRAIN.CAP_CNN = os.path.join(cfg.MODELS_DIR, 'big', cfg.TRAIN.CAP_CNN)
-        cfg.TRAIN.CAP_RNN = os.path.join(cfg.MODELS_DIR, 'big', cfg.TRAIN.CAP_RNN)
+        cfg.TRAIN.CAP_CNN = os.path.join(cfg.MODELS_DIR, cfg.DATASET_SIZE, cfg.TRAIN.CAP_CNN)
+        cfg.TRAIN.CAP_RNN = os.path.join(cfg.MODELS_DIR, cfg.DATASET_SIZE, cfg.TRAIN.CAP_RNN)
 
     # Set device
     if torch.cuda.is_available():
@@ -517,7 +515,7 @@ if __name__ == '__main__':
 
     caption_path = os.path.join(cfg.DATA_DIR, 'annotations/captions_train2014.json')
     # TODO: Change back to cfg.DATA_DIR
-    vocab_path = os.path.join(cfg.ROOT_DATA_DIR, 'big', args.vocab_name)
+    vocab_path = os.path.join(cfg.ROOT_DATA_DIR, cfg.DATASET_SIZE, cfg.VOCAB.NAME)
 
     # Load vocabulary
     with open(vocab_path, 'rb') as f:
