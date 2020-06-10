@@ -5,6 +5,7 @@ from torchvision import models
 import torch.utils.model_zoo as model_zoo
 import torch.nn.functional as F
 from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
+from miscc.utils import load_state_dict_from_url
 from transformers import BertTokenizer, BertModel
 from cfg.config import cfg
 from GLAttention import GLAttentionGeneral as ATT_NET
@@ -162,12 +163,17 @@ class CNN_ENCODER(nn.Module):
         else:
             self.nef = 256  # define a uniform ranker
 
+        model_urls = {
+            # Inception v3 ported from TensorFlow
+            'inception_v3_google': 'https://download.pytorch.org/models/inception_v3_google-1a9a5a14.pth',
+        }
+
         model = models.inception_v3()
-        url = 'https://download.pytorch.org/models/inception_v3_google-1a9a5a14.pth'
-        model.load_state_dict(model_zoo.load_url(url))
+        state_dict = load_state_dict_from_url(model_urls['inception_v3_google'])
+        model.load_state_dict(state_dict)
         for param in model.parameters():
             param.requires_grad = False
-        print('Load pretrained model from ', url)
+        print('Load pretrained model from ', model_urls['inception_v3_google'])
         # print(model)
 
         self.define_module(model)
@@ -202,7 +208,7 @@ class CNN_ENCODER(nn.Module):
     def forward(self, x):
         features = None
         # --> fixed-size input: batch x 3 x 299 x 299
-        x = nn.Upsample(size=(299, 299), mode='bilinear')(x)
+        x = nn.Upsample(size=(299, 299), mode='bilinear', align_corners=False)(x)
         # 299 x 299 x 3
         x = self.Conv2d_1a_3x3(x)
         # 149 x 149 x 32
@@ -694,7 +700,7 @@ class CAPTION_CNN(nn.Module):
     def forward(self, images):
         """Extract feature vectors from input images."""
         #print ('image feature size before unsample:', images.size())
-        m = nn.Upsample(size=(224, 224), mode='bilinear')
+        m = nn.Upsample(size=(224, 224), mode='bilinear', align_corners=False)
         unsampled_images = m(images)
         #print ('image feature size after unsample:', unsampled_images.size())
         features = self.resnet(unsampled_images)

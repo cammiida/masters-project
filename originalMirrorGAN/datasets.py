@@ -73,7 +73,7 @@ def get_imgs(img_path, imsize, bbox=None,
         for i in range(cfg.TREE.BRANCH_NUM):
             # print(imsize[i])
             if i < (cfg.TREE.BRANCH_NUM - 1):
-                re_img = transforms.Scale(imsize[i])(img)
+                re_img = transforms.Resize(imsize[i])(img)
             else:
                 re_img = img
             ret.append(normalize(re_img))
@@ -139,8 +139,8 @@ class TextDataset(data.Dataset):
         all_captions = []
         for i in range(len(filenames)):
             cap_path = '%s/text/%s.txt' % (data_dir, filenames[i])
-            with open(cap_path, "r") as f:
-                captions = f.read().decode('utf8').split('\n')
+            with open(cap_path, "r", encoding="utf-8") as f:
+                captions = f.read().split('\n')
                 cnt = 0
                 for cap in captions:
                     if len(cap) == 0:
@@ -215,9 +215,9 @@ class TextDataset(data.Dataset):
         train_names = self.load_filenames(data_dir, 'train')
         test_names = self.load_filenames(data_dir, 'test')
         if not os.path.isfile(filepath):
-            train_captions = self.load_captions(data_dir, 'train')
+            train_captions = self.load_captions(data_dir, train_names)
             print('train captions: ', train_captions)
-            test_captions = self.load_captions(data_dir, 'val')
+            test_captions = self.load_captions(data_dir, test_names)
 
             train_captions, test_captions, ixtoword, wordtoix, n_words = \
                 self.build_dictionary(train_captions, test_captions)
