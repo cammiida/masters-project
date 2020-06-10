@@ -1,11 +1,10 @@
 import torch
 import torch.nn as nn
-from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
+from torch.nn.utils.rnn import pack_padded_sequence
 from torchvision import transforms
 import matplotlib.pyplot as plt
 import numpy as np
 
-import pickle
 import os
 import pprint
 import time
@@ -15,14 +14,10 @@ from miscc.utils import mkdir_p, str2bool
 from tqdm import tqdm
 from datetime import datetime
 from nltk.translate.bleu_score import corpus_bleu
-from PIL import Image, ImageFont, ImageDraw
-from fonts.ttf import AmaticSC
-import imageio
 
 from cfg.config import cfg, cfg_from_file
-from datasets import get_loader
 from model import Encoder, Decoder, CAPTION_CNN, CAPTION_RNN
-from process_data import Vocabulary
+from datasets import TextDataset
 
 
 def parse_args():
@@ -96,7 +91,7 @@ def calculate_bleu_scores(hypotheses, references):
 
     return bleu_1, bleu_2, bleu_3, bleu_4
 
-def print_sample(hypotheses, references, test_references, imgs, alphas, k, show_att, losses, vocab):
+def print_sample(hypotheses, references, test_references, imgs, alphas, k, show_att, losses, ixtoword):
 
     bleu_1, bleu_2, bleu_3, bleu_4 = calculate_bleu_scores(hypotheses, references)
     print(references[0][0])
@@ -114,11 +109,11 @@ def print_sample(hypotheses, references, test_references, imgs, alphas, k, show_
     for k in range(len(hypotheses)):
         hyp_sentence = []
         for word_idx in hypotheses[k]:
-            hyp_sentence.append(vocab.idx2word[word_idx])
+            hyp_sentence.append(ixtoword[word_idx])
 
         ref_sentence = []
         for word_idx in test_references[k]:
-            ref_sentence.append(vocab.idx2word[word_idx])
+            ref_sentence.append(ixtoword[word_idx])
 
         hyp_sentence = " ".join(hyp_sentence)
         ref_sentence = " ".join(ref_sentence)
@@ -282,7 +277,7 @@ def train(caption_cnn, caption_rnn, decoder_optimizer, criterion, train_loader, 
 # Validate model
 #################
 
-def validate(caption_cnn, caption_rnn, criterion, val_loader, vocab, output_dir, version):
+def validate(caption_cnn, caption_rnn, val_loader, ixtoword):
     print("Started validation...")
     caption_cnn.eval()
     caption_rnn.eval()
@@ -378,7 +373,7 @@ def validate(caption_cnn, caption_rnn, criterion, val_loader, vocab, output_dir,
             print("BLEU-3: " + str(bleu_3.avg))
             print("BLEU-4: " + str(bleu_4.avg))
             print("Validation loss: " + str(losses.avg))
-            print_sample(hypotheses, references, test_references, all_imgs, all_alphas, 1, False, losses, vocab)
+            print_sample(hypotheses, references, test_references, all_imgs, all_alphas, 1, False, losses, ixtoword)
 
     print("Completed validation...")
 
@@ -391,48 +386,31 @@ def caption_loss(cap_output, captions):
 #############
 # Init model
 #############
-def init_model(vocab):
+def init_model(ixtoword):
 
-    decoder_optimizer = None
 
-    if not cfg.TRAIN.FLAG:
-        assert cfg.TRAIN.CAP_CNN and cfg.TRAIN.CAP_RNN, "Models must be specified in validation mode."
-        print('Pre-Trained Caption Model')
-        if cfg.TRAIN.STREAM.USE_ORIGINAL:
-            caption_cnn = CAPTION_CNN(embed_size=cfg.TEXT.EMBEDDING_DIM)
-            caption_rnn = CAPTION_RNN(embed_size=cfg.TEXT.EMBEDDING_DIM, hidden_size=cfg.TRAIN.STREAM.HIDDEN_SIZE,
-                                      vocab_size=len(vocab), num_layers=cfg.TRAIN.STREAM.NUM_LAYERS)
-
-            caption_cnn_checkpoint = torch.load(cfg.TRAIN.CAP_CNN, map_location=lambda storage, loc: storage)
-            caption_rnn_checkpoint = torch.load(cfg.TRAIN.CAP_RNN, map_location=lambda storage, loc: storage)
-
-            caption_cnn.load_state_dict(caption_cnn_checkpoint)
-            caption_rnn.load_state_dict(caption_rnn_checkpoint)
-        else:
-            caption_cnn = Encoder()
-            caption_rnn = Decoder(vocab=vocab)
-
-            caption_cnn_checkpoint = torch.load(cfg.TRAIN.CAP_CNN, map_location=lambda storage, loc: storage)
-            caption_rnn_checkpoint = torch.load(cfg.TRAIN.CAP_RNN, map_location=lambda storage, loc: storage)
-
-            caption_cnn.load_state_dict(caption_cnn_checkpoint['model_state_dict'])
-            caption_rnn.load_state_dict(caption_rnn_checkpoint['model_state_dict'])
-
-        caption_cnn.eval()
-        caption_rnn.eval()
-        #decoder_optimizer = torch.optim.Adam(params=caption_rnn.parameters(), lr=cfg.TRAIN.DECODER_LR)
-        #decoder_optimizer.load_state_dict(caption_rnn_checkpoint['optimizer_state_dict'])
+    if cfg.TRAIN.STREAM.USE_ORIGINAL:
+        caption_cnn = CAPTION_CNN(embed_size=cfg.TEXT.EMBEDDING_DIM)
+        caption_rnn = CAPTION_RNN(embed_size=cfg.TEXT.EMBEDDING_DIM, hidden_size=cfg.TRAIN.STREAM.HIDDEN_SIZE,
+                                  vocab_size=len(ixtoword), num_layers=cfg.TRAIN.STREAM.NUM_LAYERS)
     else:
         caption_cnn = Encoder()
-        caption_rnn = Decoder(vocab=vocab)
-        decoder_optimizer = torch.optim.Adam(params=caption_rnn.parameters(), lr=cfg.TRAIN.DECODER_LR)
+        caption_rnn = Decoder(idx2word=ixtoword)
+    decoder_optimizer = torch.optim.Adam(params=caption_rnn.parameters(), lr=cfg.TRAIN.DECODER_LR)
+
+    if cfg.TRAIN.caption_cnn_path and cfg.TRAIN.caption_rnn_path:
+        print('Pre-Trained Caption Model')
+        caption_cnn_checkpoint = torch.load(cfg.TRAIN.caption_cnn_path, map_location=lambda storage, loc: storage)
+        caption_rnn_checkpoint = torch.load(cfg.TRAIN.caption_rnn_path, map_location=lambda storage, loc: storage)
+
+        caption_cnn.load_state_dict(caption_cnn_checkpoint['model_state_dict'])
+        caption_rnn.load_state_dict(caption_rnn_checkpoint['model_state_dict'])
+        decoder_optimizer.load_state_dict(caption_rnn_checkpoint['optimizer_state_dict'])
 
     return caption_cnn, caption_rnn, decoder_optimizer
 
 
 def pretrain_STREAM():
-    crit = nn.CrossEntropyLoss().to(cfg.DEVICE)
-    caption_cnn, caption_rnn, dec_optim = init_model(vocab)
 
     # rasnet tranformation/normalization
     transform = transforms.Compose([
@@ -454,25 +432,38 @@ def pretrain_STREAM():
     ######################
     # Run training/validation
     ######################
+    crit = nn.CrossEntropyLoss().to(cfg.DEVICE)
+
+    # Get data loader ##################################################
+    imsize = cfg.TREE.BASE_SIZE * (2 ** (cfg.TREE.BRANCH_NUM - 1))
+    batch_size = cfg.TRAIN.BATCH_SIZE
+    image_transform = transforms.Compose([
+        transforms.Resize(int(imsize * 76 / 64)),
+        transforms.RandomCrop(imsize),
+        transforms.RandomHorizontalFlip()])
+
+
+    split = 'train' if cfg.TRAIN.FLAG else 'test'
+    dataset = TextDataset(cfg.DATA_DIR, split,
+                      base_size=cfg.TREE.BASE_SIZE,
+                      transform=image_transform)
+    print(dataset.n_words, dataset.embeddings_num)
+    assert dataset
+
+    caption_cnn, caption_rnn, dec_optim = init_model(dataset.ixtoword)
+
+    # Load data
+    dataloader = torch.utils.data.DataLoader(dataset, batch_size, drop_last=True, shuffle=True, num_workers=int(cfg.WORKERS))
 
     if cfg.TRAIN.FLAG:
-        # Load data
-        train_loader = get_loader(cfg.DATA_DIR, 'train', vocab, cfg.TRAIN.BATCH_SIZE,
-                                  transform=transform, norm=norm, tree_base_size=cfg.TREE.BASE_SIZE,
-                                  tree_branch_num=cfg.TREE.BRANCH_NUM)
         train(caption_cnn, caption_rnn, decoder_optimizer=dec_optim,
-              criterion=crit, train_loader=train_loader, output_dir=output_dir)
-
+              criterion=crit, train_loader=dataloader, output_dir=output_dir)
     else:
-        # Load data
-        val_loader = get_loader(cfg.DATA_DIR, 'val', vocab, cfg.TRAIN.BATCH_SIZE, transform=transform, norm=norm,
-                                tree_base_size=cfg.TREE.BASE_SIZE, tree_branch_num=cfg.TREE.BRANCH_NUM)
+        caption_cnn.eval()
+        caption_rnn.eval()
         # Don't caluclate gradients for validation
-        version = 'original' if cfg.TRAIN.STREAM.USE_ORIGINAL else 'new'
-
         with torch.no_grad():
-            validate(caption_cnn, caption_rnn, criterion=crit,
-                     val_loader=val_loader, vocab=vocab, output_dir=output_dir, version=version)
+            validate(caption_cnn, caption_rnn, val_loader=dataloader, ixtoword=dataset.ixtoword)
 
 
 def set_config_params(args):
@@ -512,12 +503,12 @@ if __name__ == '__main__':
     args = parse_args()
     set_config_params(args)
 
-    caption_path = os.path.join(cfg.DATA_DIR, 'annotations/captions_train2014.json')
-    vocab_path = os.path.join(cfg.DATA_DIR, cfg.DATASET_SIZE, cfg.VOCAB.NAME)
+    #caption_path = os.path.join(cfg.DATA_DIR, 'annotations/captions_train2014.json')
+    #vocab_path = os.path.join(cfg.DATA_DIR, cfg.DATASET_SIZE, cfg.VOCAB.NAME)
 
     # Load vocabulary
-    with open(vocab_path, 'rb') as f:
-        vocab = pickle.load(f)
+    #with open(vocab_path, 'rb') as f:
+    #    vocab = pickle.load(f)
 
 
     pretrain_STREAM()

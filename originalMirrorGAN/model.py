@@ -6,6 +6,7 @@ from torchvision import models
 import torch.utils.model_zoo as model_zoo
 import torch.nn.functional as F
 from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
+from transformers import BertTokenizer, BertModel
 from cfg.config import cfg
 from GLAttention import GLAttentionGeneral as ATT_NET
 
@@ -769,9 +770,9 @@ class Encoder(nn.Module):
 
 
 class Decoder(nn.Module):
-    def __init__(self, vocab):
+    def __init__(self, idx2word):
         super(Decoder, self).__init__()
-        self.vocab = vocab
+        self.idx2word = idx2word
         self.encoder_dim = 2048
         self.attention_dim = 512
         self.embed_dim = 768
@@ -783,7 +784,7 @@ class Decoder(nn.Module):
         self.model.eval()
 
         self.decoder_dim = 512
-        self.vocab_size = len(vocab)
+        self.vocab_size = len(idx2word)
         self.dropout_rate = 0.5
 
         # soft attention
@@ -824,7 +825,7 @@ class Decoder(nn.Module):
             while len(cap_idx) < max_dec_len:
                 cap_idx.append(cfg.VOCAB.PAD)
 
-            cap = ' '.join([self.vocab.idx2word[word_idx.item()] for word_idx in cap_idx])
+            cap = ' '.join([self.idx2word[word_idx.item()] for word_idx in cap_idx])
             cap = u'[CLS] '+cap
 
             tokenized_cap = tokenizer.tokenize(cap)
