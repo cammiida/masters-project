@@ -202,7 +202,6 @@ def train(caption_cnn, caption_rnn, decoder_optimizer, criterion, train_loader, 
 
             # Packing to optimize computations
             if cfg.CAP.USE_ORIGINAL:
-                print('Using original STREAM for validation')
                 targets = pack_padded_sequence(caps, cap_lens, batch_first=True)[0]
                 scores = caption_rnn(encoder_out, caps, cap_lens)  # 418 x 9956
             else:

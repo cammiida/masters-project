@@ -279,12 +279,13 @@ if __name__ == "__main__":
                           dataset.ixtoword, image_dir)
             print('-' * 89)
             if len(dataloader_val) > 0:
-                s_loss, w_loss = evaluate(dataloader_val, image_encoder,
-                                          text_encoder, batch_size)
-                print('| end epoch {:3d} | valid loss '
-                      '{:5.2f} {:5.2f} | lr {:.5f}|'
-                      .format(epoch, s_loss, w_loss, lr))
-            print('-' * 89)
+                with torch.no_grad():
+                    s_loss, w_loss = evaluate(dataloader_val, image_encoder,
+                                              text_encoder, batch_size)
+                    print('| end epoch {:3d} | valid loss '
+                          '{:5.2f} {:5.2f} | lr {:.5f}|'
+                          .format(epoch, s_loss, w_loss, lr))
+                print('-' * 89)
             if lr > cfg.TRAIN.ENCODER_LR/10.:
                 lr *= 0.98
 
