@@ -30,9 +30,9 @@ CAP:
     HIDDEN_SIZE: 256
     NUM_LAYERS: 1
     LEARNING_RATE: 0.001
-    CAPTION_CNN_PATH: '../models/encoder_epoch4_new.pkl'
-    CAPTION_RNN_PATH: '../models/decoder_epoch4_new.pkl'
-    USE_ORIGINAL: False
+    CAPTION_CNN_PATH: '../models/encoder_epoch4_original.pkl'
+    CAPTION_RNN_PATH: '../models/decoder_epoch4_original.pkl'
+    USE_ORIGINAL: True
 
 GAN:
     DF_DIM: 64
