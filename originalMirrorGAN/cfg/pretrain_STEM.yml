@@ -3,9 +3,9 @@ DATASET_NAME: 'coco'
 CONFIG_NAME: 'STEM'
 DATA_DIR: '../data/'
 DATA_SIZE: 'big'
-GPU_ID: -1
-WORKERS: 1
 OUTPUT_PATH: '../output/'
+CUDA: True
+WORKERS: 8
 
 TRAIN:
     NET_E: ''

@@ -1,10 +1,11 @@
-CONFIG_NAME: 'STREAM_original'
 DATASET_NAME: 'coco'
 
+CONFIG_NAME: 'STREAM_original'
 DATA_DIR: '../data/'
-OUTPUT_DIR: '../output/'
-GPU_ID: -1
-WORKERS: 1
+DATA_SIZE: 'big'
+OUTPUT_PATH: '../output/'
+CUDA: True
+WORKERS: 8
 
 TRAIN:
   FLAG: TRUE
@@ -18,6 +19,11 @@ CAP:
   NUM_LAYERS: 1
   LEARNING_RATE: 0.001
   CAPTION_CNN_PATH: '' # No pretrained model
-  CAPTION_RNN_PATN: '' # No pretrained model
-  USE_ORIGINAL: False
+  CAPTION_RNN_PATH: '' # No pretrained model
+  USE_ORIGINAL: True
+
+TEXT:
+  CAPTIONS_PER_IMAGE: 5
+  EMBEDDING_DIM: 256
+  WORDS_NUM: 15
 

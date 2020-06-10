@@ -13,9 +13,10 @@ cfg = __C
 __C.DATASET_NAME = 'birds'
 __C.CONFIG_NAME = ''
 __C.DATA_DIR = ''
-__C.GPU_ID = 0
+__C.DATA_SIZE = 'big'
+__C.GPU_ID = -1
 __C.CUDA = False
-__C.DEVICE = 'cpu' # TODO: Use this throughout
+__C.DEVICE = 'cpu'
 __C.WORKERS = 6
 __C.OUTPUT_PATH = ''
 __C.RNN_TYPE = 'LSTM'   # 'GRU'
@@ -71,7 +72,7 @@ __C.GAN.B_DCGAN = False
 
 
 __C.TEXT = edict()
-__C.TEXT.CAPTIONS_PER_IMAGE = 10
+__C.TEXT.CAPTIONS_PER_IMAGE = 5
 __C.TEXT.EMBEDDING_DIM = 256
 __C.TEXT.WORDS_NUM = 18
 
