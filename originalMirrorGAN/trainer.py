@@ -29,7 +29,7 @@ class Trainer(object):
             mkdir_p(self.image_dir)
 
 
-        torch.cuda.set_device(cfg.GPU_ID)
+        #torch.cuda.set_device(cfg.GPU_ID)
         cudnn.benchmark = True
 
         self.batch_size = cfg.TRAIN.BATCH_SIZE
@@ -138,14 +138,14 @@ class Trainer(object):
                         torch.load(Dname, map_location=lambda storage, loc: storage)
                     netsD[i].load_state_dict(state_dict)
 
-        if cfg.CUDA:
-            text_encoder = text_encoder.cuda()
-            image_encoder = image_encoder.cuda()
-            caption_cnn = caption_cnn.cuda()
-            caption_rnn = caption_rnn.cuda()
-            netG.cuda()
-            for i in range(len(netsD)):
-                netsD[i].cuda()
+
+        text_encoder = text_encoder.to(cfg.DEVICE)
+        image_encoder = image_encoder.to(cfg.DEVICE)
+        caption_cnn = caption_cnn.to(cfg.DEVICE)
+        caption_rnn = caption_rnn.to(cfg.DEVICE)
+        netG.to(cfg.DEVICE)
+        for i in range(len(netsD)):
+            netsD[i].to(cfg.DEVICE)
         return [text_encoder, image_encoder, caption_cnn, caption_rnn, netG, netsD, epoch]
 
     def define_optimizers(self, netG, netsD):
@@ -169,10 +169,10 @@ class Trainer(object):
         real_labels = Variable(torch.FloatTensor(batch_size).fill_(1))
         fake_labels = Variable(torch.FloatTensor(batch_size).fill_(0))
         match_labels = Variable(torch.LongTensor(range(batch_size)))
-        if cfg.CUDA:
-            real_labels = real_labels.cuda()
-            fake_labels = fake_labels.cuda()
-            match_labels = match_labels.cuda()
+
+        real_labels = real_labels.to(cfg.DEVICE)
+        fake_labels = fake_labels.to(cfg.DEVICE)
+        match_labels = match_labels.to(cfg.DEVICE)
 
         return real_labels, fake_labels, match_labels
 
@@ -243,10 +243,8 @@ class Trainer(object):
 
         batch_size = self.batch_size
         nz = cfg.GAN.Z_DIM
-        noise = Variable(torch.FloatTensor(batch_size, nz))
-        fixed_noise = Variable(torch.FloatTensor(batch_size, nz).normal_(0, 1))
-        if cfg.CUDA:
-            noise, fixed_noise = noise.cuda(), fixed_noise.cuda()
+        noise = Variable(torch.FloatTensor(batch_size, nz)).to(cfg.DEVICE)
+        fixed_noise = Variable(torch.FloatTensor(batch_size, nz).normal_(0, 1)).to(cfg.DEVICE)
 
         gen_iterations = 0
         for epoch in tqdm(range(start_epoch, self.max_epoch)):
@@ -357,7 +355,7 @@ class Trainer(object):
             else:
                 netG = G_NET()
             netG.apply(weights_init)
-            netG.cuda()
+            netG.to(cfg.DEVICE)
             netG.eval()
             #
             text_encoder = RNN_ENCODER(self.n_words, nhidden=cfg.TEXT.EMBEDDING_DIM)
@@ -365,13 +363,13 @@ class Trainer(object):
                 torch.load(cfg.TRAIN.NET_E, map_location=lambda storage, loc: storage)
             text_encoder.load_state_dict(state_dict)
             print('Load text encoder from:', cfg.TRAIN.NET_E)
-            text_encoder = text_encoder.cuda()
+            text_encoder = text_encoder.to(cfg.DEVICE)
             text_encoder.eval()
 
             batch_size = self.batch_size
             nz = cfg.GAN.Z_DIM
             noise = Variable(torch.FloatTensor(batch_size, nz), volatile=True)
-            noise = noise.cuda()
+            noise = noise.to(cfg.DEVICE)
 
             model_dir = cfg.TRAIN.NET_G
             state_dict = \
@@ -437,7 +435,7 @@ class Trainer(object):
                 torch.load(cfg.TRAIN.NET_E, map_location=lambda storage, loc: storage)
             text_encoder.load_state_dict(state_dict)
             print('Load text encoder from:', cfg.TRAIN.NET_E)
-            text_encoder = text_encoder.cuda()
+            text_encoder = text_encoder.to(cfg.DEVICE)
             text_encoder.eval()
 
             # the path to save generated images
@@ -451,7 +449,7 @@ class Trainer(object):
                 torch.load(model_dir, map_location=lambda storage, loc: storage)
             netG.load_state_dict(state_dict)
             print('Load G from: ', model_dir)
-            netG.cuda()
+            netG.to(cfg.DEVICE)
             netG.eval()
             for key in data_dic:
                 save_dir = '%s/%s' % (s_tmp, key)
@@ -463,11 +461,11 @@ class Trainer(object):
                 captions = Variable(torch.from_numpy(captions), volatile=True)
                 cap_lens = Variable(torch.from_numpy(cap_lens), volatile=True)
 
-                captions = captions.cuda()
-                cap_lens = cap_lens.cuda()
+                captions = captions.to(cfg.DEVICE)
+                cap_lens = cap_lens.to(cfg.DEVICE)
                 for i in range(1):  # 16
                     noise = Variable(torch.FloatTensor(batch_size, nz), volatile=True)
-                    noise = noise.cuda()
+                    noise = noise.to(cfg.DEVICE)
                     # (1) Extract text embeddings
                     hidden = text_encoder.init_hidden(batch_size)
                     # words_embs: batch_size x nef x seq_len

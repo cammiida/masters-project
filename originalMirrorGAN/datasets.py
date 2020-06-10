@@ -19,7 +19,6 @@ import pandas as pd
 from PIL import Image
 import numpy.random as random
 
-
 if sys.version_info[0] == 2:
     import cPickle as pickle
 else:
@@ -36,22 +35,15 @@ def prepare_data(data):
     real_imgs = []
     for i in range(len(imgs)):
         imgs[i] = imgs[i][sorted_cap_indices]
-        if cfg.CUDA:
-            real_imgs.append(imgs[i].cuda())
-        else:
-            real_imgs.append(imgs[i])
+        real_imgs.append(imgs[i].to(cfg.DEVICE))
 
     captions = captions[sorted_cap_indices].squeeze()
     class_ids = class_ids[sorted_cap_indices].numpy()
     # sent_indices = sent_indices[sorted_cap_indices]
     keys = [keys[i] for i in sorted_cap_indices.numpy()]
     # print('keys', type(keys), keys[-1])  # list
-    if cfg.CUDA:
-        captions = captions.cuda()
-        sorted_cap_lens = sorted_cap_lens.cuda()
-    else:
-        captions = captions
-        sorted_cap_lens = sorted_cap_lens
+    captions = captions.to(cfg.DEVICE)
+    sorted_cap_lens = sorted_cap_lens.to(cfg.DEVICE)
 
     return [real_imgs, captions, sorted_cap_lens,
             class_ids, keys]

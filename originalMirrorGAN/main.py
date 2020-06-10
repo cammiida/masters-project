@@ -100,8 +100,10 @@ if __name__ == "__main__":
     random.seed(args.manualSeed)
     np.random.seed(args.manualSeed)
     torch.manual_seed(args.manualSeed)
-    if cfg.CUDA:
-        torch.cuda.manual_seed_all(args.manualSeed)
+    # Set device
+    if cfg.CUDA and torch.cuda.is_available():
+        torch.cuda.manual_seed_all(args.manual_seed)
+        cfg.DEVICE = torch.device('cuda')
 
     now = datetime.datetime.now(dateutil.tz.tzlocal())
     timestamp = now.strftime('%Y_%m_%d_%H_%M_%S')

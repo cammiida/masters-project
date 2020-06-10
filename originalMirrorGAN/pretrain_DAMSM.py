@@ -184,10 +184,10 @@ def build_models():
         start_epoch = cfg.TRAIN.NET_E[istart:iend]
         start_epoch = int(start_epoch) + 1
         print('start_epoch', start_epoch)
-    if cfg.CUDA:
-        text_encoder = text_encoder.cuda()
-        image_encoder = image_encoder.cuda()
-        labels = labels.cuda()
+
+    text_encoder = text_encoder.to(cfg.DEVICE)
+    image_encoder = image_encoder.to(cfg.DEVICE)
+    labels = labels.to(cfg.DEVICE)
 
     return text_encoder, image_encoder, labels, start_epoch
 
@@ -214,8 +214,9 @@ if __name__ == "__main__":
     random.seed(args.manualSeed)
     np.random.seed(args.manualSeed)
     torch.manual_seed(args.manualSeed)
-    if cfg.CUDA:
+    if cfg.CUDA and torch.cuda.is_available():
         torch.cuda.manual_seed_all(args.manualSeed)
+        cfg.DEVICE = torch.device('cuda')
 
     ##########################################################################
     now = datetime.datetime.now(dateutil.tz.tzlocal())
@@ -228,7 +229,7 @@ if __name__ == "__main__":
     mkdir_p(model_dir)
     mkdir_p(image_dir)
 
-    torch.cuda.set_device(cfg.GPU_ID)
+    # torch.cuda.set_device(cfg.GPU_ID)
     cudnn.benchmark = True
 
     # Get data loader ##################################################

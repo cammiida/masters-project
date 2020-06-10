@@ -33,9 +33,7 @@ def sent_loss(cnn_code, rnn_code, labels, class_ids,
             masks.append(mask.reshape((1, -1)))
         masks = np.concatenate(masks, 0)
         # masks: batch_size x batch_size
-        masks = torch.ByteTensor(masks)
-        if cfg.CUDA:
-            masks = masks.cuda()
+        masks = torch.ByteTensor(masks).to(cfg.DEVICE)
 
     # --> seq_len x batch_size x nef
     if cnn_code.dim() == 2:
@@ -120,9 +118,7 @@ def words_loss(img_features, words_emb, labels,
     if class_ids is not None:
         masks = np.concatenate(masks, 0)
         # masks: batch_size x batch_size
-        masks = torch.ByteTensor(masks)
-        if cfg.CUDA:
-            masks = masks.cuda()
+        masks = torch.ByteTensor(masks).to(cfg.DEVICE)
 
     similarities = similarities * cfg.TRAIN.SMOOTH.GAMMA3
     if class_ids is not None:
@@ -190,8 +186,8 @@ def generator_loss(netsD, image_encoder, caption_cnn, caption_rnn, captions, fak
 
         if i == (numDs - 1):
             fakeimg_feature = caption_cnn(fake_imgs[i])
-            captions.cuda()
-            target_cap = pack_padded_sequence(captions, cap_lens.data.tolist(), batch_first=True)[0].cuda()
+            captions.to(cfg.DEVICE)
+            target_cap = pack_padded_sequence(captions, cap_lens.data.tolist(), batch_first=True)[0].to(cfg.DEVICE)
             cap_output = caption_rnn(fakeimg_feature, captions, cap_lens)
             cap_loss = caption_loss(cap_output, target_cap) * cfg.TRAIN.SMOOTH.LAMBDA1
 
