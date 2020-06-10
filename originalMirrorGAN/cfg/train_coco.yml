@@ -3,7 +3,7 @@ DATASET_NAME: 'coco'
 DATA_DIR: '../data/'
 GPU_ID: -1
 WORKERS: 4
-OUTPUT_PATH: '../data/'
+OUTPUT_PATH: '../output/'
 TREE:
     BRANCH_NUM: 3
 
