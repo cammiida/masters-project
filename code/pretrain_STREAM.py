@@ -205,13 +205,26 @@ def train(caption_cnn, caption_rnn, decoder_optimizer, criterion, train_loader, 
             caps = caps.to(cfg.DEVICE)
 
             # Packing to optimize computations
-            scores, caps_sorted, decode_lengths, alphas = caption_rnn(encoder_out, caps, cap_lens)
-            scores = pack_padded_sequence(scores, decode_lengths, batch_first=True)[0]
+            #scores, caps_sorted, decode_lengths, alphas = caption_rnn(encoder_out, caps, cap_lens)
+            #scores = pack_padded_sequence(scores, decode_lengths, batch_first=True)[0]
+            #targets = pack_padded_sequence(caps_sorted, decode_lengths, batch_first=True)[0]
 
-            #targets = caps_sorted[:, 1:]
-            targets = pack_padded_sequence(caps_sorted, decode_lengths, batch_first=True)[0]
+            if cfg.TRAIN.STREAM.USE_ORIGINAL:
+                print('Using original STREAM for training')
+                targets_packed = pack_padded_sequence(caps, cap_lens, batch_first=True)[0]
+                scores_packed = caption_rnn(encoder_out, caps, cap_lens)  # 418 x 9956
+            else:
+                scores, caps_sorted, decode_lengths, alphas = caption_rnn(encoder_out, caps, cap_lens)
+                # Remove timesteps that we didn't decode at, or are pads
+                scores_packed = pack_padded_sequence(scores, decode_lengths, batch_first=True)[0]
+                targets_packed = pack_padded_sequence(caps_sorted, decode_lengths, batch_first=True)[0]
 
-            loss = criterion(scores, targets).to(cfg.DEVICE)
+            cap_loss = caption_loss(scores_packed, targets_packed) * cfg.TRAIN.SMOOTH.LAMBDA1
+            if not cfg.TRAIN.STREAM.USE_ORIGINAL:
+                cap_loss += ((1. - alphas.sum(dim=1)) ** 2).mean()
+            losses.update(cap_loss.item(), sum(cap_lens))
+
+            loss = criterion(scores_packed, targets_packed).to(cfg.DEVICE)
 
             loss += ((1. - alphas.sum(dim=1)) ** 2).mean()
 

@@ -38,9 +38,10 @@ def parse_args():
     parser = argparse.ArgumentParser(description='Train a DAMSM network')
     parser.add_argument('--cfg', dest='cfg_file',
                         help='optional config file',
-                        default='cfg/DAMSM/bird.yml', type=str)
+                        default='cfg/pretrain_STREM.yml', type=str)
     parser.add_argument('--gpu', dest='gpu_id', type=int, default=0)
     parser.add_argument('--data_dir', dest='data_dir', type=str, default='')
+    parser.add_argument('--data_size', dest='data_size', type=str, default='big')
     parser.add_argument('--manualSeed', type=int, help='manual seed')
     args = parser.parse_args()
     return args
@@ -100,11 +101,11 @@ def train(dataloader, cnn_model, rnn_model, batch_size,
         if step % UPDATE_INTERVAL == 0:
             count = epoch * len(dataloader) + step
 
-            s_cur_loss0 = s_total_loss0[0] / UPDATE_INTERVAL
-            s_cur_loss1 = s_total_loss1[0] / UPDATE_INTERVAL
+            s_cur_loss0 = s_total_loss0.item() / UPDATE_INTERVAL
+            s_cur_loss1 = s_total_loss1.item() / UPDATE_INTERVAL
 
-            w_cur_loss0 = w_total_loss0[0] / UPDATE_INTERVAL
-            w_cur_loss1 = w_total_loss1[0] / UPDATE_INTERVAL
+            w_cur_loss0 = w_total_loss0.item() / UPDATE_INTERVAL
+            w_cur_loss1 = w_total_loss1.item() / UPDATE_INTERVAL
 
             elapsed = time.time() - start_time
             print('| epoch {:3d} | {:5d}/{:5d} batches | ms/batch {:5.2f} | '
@@ -157,8 +158,8 @@ def evaluate(dataloader, cnn_model, rnn_model, batch_size):
         if step == 50:
             break
 
-    s_cur_loss = s_total_loss[0] / step
-    w_cur_loss = w_total_loss[0] / step
+    s_cur_loss = s_total_loss.item() / step
+    w_cur_loss = w_total_loss.item() / step
 
     return s_cur_loss, w_cur_loss
 
@@ -204,6 +205,11 @@ if __name__ == "__main__":
 
     if args.data_dir != '':
         cfg.DATA_DIR = args.data_dir
+
+    if args.data_size != '':
+        cfg.DATA_SIZE = args.data_size
+
+    cfg.DATA_DIR = os.path.join(cfg.DATA_DIR, cfg.DATA_SIZE)
     print('Using config:')
     pprint.pprint(cfg)
 
@@ -221,8 +227,9 @@ if __name__ == "__main__":
     ##########################################################################
     now = datetime.datetime.now(dateutil.tz.tzlocal())
     timestamp = now.strftime('%Y_%m_%d_%H_%M_%S')
-    output_dir = '../output/%s_%s_%s' % \
-        (cfg.DATASET_NAME, cfg.CONFIG_NAME, timestamp)
+    output_dir = os.path.join(cfg.OUTPUT_PATH, cfg.DATASET_NAME, cfg.CONFIG_NAME, timestamp)
+    #output_dir = '%s/%s_%s_%s_%s' % \
+    #             (cfg.OUTPUT_PATH, cfg.DATASET_NAME, cfg.CONFIG_NAME, timestamp)
 
     model_dir = os.path.join(output_dir, 'Model')
     image_dir = os.path.join(output_dir, 'Image')
