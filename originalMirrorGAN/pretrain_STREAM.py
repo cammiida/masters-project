@@ -17,14 +17,13 @@ from nltk.translate.bleu_score import corpus_bleu
 
 from cfg.config import cfg, cfg_from_file
 from model import Encoder, Decoder, CAPTION_CNN, CAPTION_RNN
-from datasets import TextDataset
+from datasets import TextDataset, prepare_data
 
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Train a STREAM network')
-    parser.add_argument('--cfg', dest='cfg_file', default='cfg/train_STREAM.yml',
+    parser.add_argument('--cfg', dest='cfg_file', default='cfg/pretrain_STREAM.yml',
                         help='optional config file', type=str)
-    parser.add_argument('--data_size', dest='data_size', type=str)
     parser.add_argument('--data_dir', dest='data_dir', type=str, default='../data')
     parser.add_argument('--train', dest='train', type=str2bool)
     parser.add_argument('--val', dest='validate', type=str2bool)
@@ -188,7 +187,9 @@ def train(caption_cnn, caption_rnn, decoder_optimizer, criterion, train_loader, 
         num_batches = len(train_loader)
 
         # Loop through each batch
-        for i, (imgs, caps, cap_lens) in enumerate(tqdm(train_loader)):
+        for i, data in enumerate(tqdm(train_loader)):
+
+            imgs, caps, cap_lens, class_ids, keys = prepare_data(data)
             # Extract imgs from list
             imgs = imgs[-1]
 
@@ -200,15 +201,25 @@ def train(caption_cnn, caption_rnn, decoder_optimizer, criterion, train_loader, 
             caps = caps.to(cfg.DEVICE)
 
             # Packing to optimize computations
-            scores, caps_sorted, decode_lengths, alphas = caption_rnn(encoder_out, caps, cap_lens)
-            scores = pack_padded_sequence(scores, decode_lengths, batch_first=True)[0]
-
+            if cfg.CAP.USE_ORIGINAL:
+                print('Using original STREAM for validation')
+                targets = pack_padded_sequence(caps, cap_lens, batch_first=True)[0]
+                scores = caption_rnn(encoder_out, caps, cap_lens)  # 418 x 9956
+            else:
+                scores, caps_sorted, decode_lengths, alphas = caption_rnn(encoder_out, caps, cap_lens)
+                scores = pack_padded_sequence(scores, decode_lengths, batch_first=True)[0]
+                # Remove timesteps that we didn't decode at, or are pads
+                targets = pack_padded_sequence(caps_sorted, decode_lengths, batch_first=True)[0]
+            #scores, caps_sorted, decode_lengths, alphas = caption_rnn(encoder_out, caps, cap_lens)
+            #scores = pack_padded_sequence(scores, decode_lengths, batch_first=True)[0]
             #targets = caps_sorted[:, 1:]
-            targets = pack_padded_sequence(caps_sorted, decode_lengths, batch_first=True)[0]
+            #targets = pack_padded_sequence(caps_sorted, decode_lengths, batch_first=True)[0]
+            #loss = criterion(scores, targets).to(cfg.DEVICE)
 
-            loss = criterion(scores, targets).to(cfg.DEVICE)
-
-            loss += ((1. - alphas.sum(dim=1)) ** 2).mean()
+            loss = caption_loss(scores, targets).to(cfg.DEVICE) * cfg.TRAIN.SMOOTH.LAMBDA1
+            if not cfg.CAP.USE_ORIGINAL:
+                loss += ((1. - alphas.sum(dim=1)) ** 2).mean()
+            #losses.update(loss.item(), sum(cap_lens))
 
             decoder_optimizer.zero_grad()
             loss.backward()
@@ -221,7 +232,7 @@ def train(caption_cnn, caption_rnn, decoder_optimizer, criterion, train_loader, 
 
             decoder_optimizer.step()
 
-            losses.update(loss.item(), sum(decode_lengths))
+            losses.update(loss.item(), sum(cap_lens))
             loss_list.append(loss.item())
 
             # save model each 5000 iterations
@@ -289,7 +300,10 @@ def validate(caption_cnn, caption_rnn, val_loader, ixtoword):
     bleu_4 = bleu_obj()
 
     # Batches
-    for i, (imgs, captions, cap_lens) in enumerate(tqdm(val_loader)):
+    for i, data in enumerate(tqdm(val_loader)):
+
+        imgs, captions, cap_lens, class_ids, keys = prepare_data(data)
+
         references = []
         test_references = []
         hypotheses = []
@@ -387,8 +401,6 @@ def caption_loss(cap_output, captions):
 # Init model
 #############
 def init_model(ixtoword):
-
-
     if cfg.CAP.USE_ORIGINAL:
         caption_cnn = CAPTION_CNN(embed_size=cfg.CAP.EMBED_SIZE)
         caption_rnn = CAPTION_RNN(embed_size=cfg.CAP.EMBED_SIZE, hidden_size=cfg.CAP.HIDDEN_SIZE,
@@ -396,6 +408,7 @@ def init_model(ixtoword):
     else:
         caption_cnn = Encoder()
         caption_rnn = Decoder(idx2word=ixtoword)
+
     decoder_optimizer = torch.optim.Adam(params=caption_rnn.parameters(), lr=cfg.CAP.LEARNING_RATE)
 
     if cfg.CAP.CAPTION_CNN_PATH and cfg.CAP.CAPTION_RNN_PATH:
@@ -406,6 +419,10 @@ def init_model(ixtoword):
         caption_cnn.load_state_dict(caption_cnn_checkpoint['model_state_dict'])
         caption_rnn.load_state_dict(caption_rnn_checkpoint['model_state_dict'])
         decoder_optimizer.load_state_dict(caption_rnn_checkpoint['optimizer_state_dict'])
+
+    caption_cnn = caption_cnn.to(cfg.DEVICE)
+    caption_rnn = caption_rnn.to(cfg.DEVICE)
+    decoder_optimizer = decoder_optimizer
 
     return caption_cnn, caption_rnn, decoder_optimizer
 
@@ -475,10 +492,7 @@ def set_config_params(args):
 
     if args.data_dir != '':
         cfg.DATA_DIR = args.data_dir
-    if args.data_size:
-        cfg.DATASET_SIZE = args.data_size
-
-    cfg.DATA_DIR = os.path.join(cfg.DATA_DIR, cfg.DATASET_SIZE)
+    cfg.DATA_DIR = os.path.join(cfg.DATA_DIR, cfg.DATA_SIZE)
 
     # Set device
     if torch.cuda.is_available():
