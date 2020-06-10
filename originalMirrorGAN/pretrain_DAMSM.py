@@ -36,7 +36,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description='Train a DAMSM network')
     parser.add_argument('--cfg', dest='cfg_file',
                         help='optional config file',
-                        default='cfg/pretrain_STREM.yml', type=str)
+                        default='cfg/pretrain_STEM.yml', type=str)
     parser.add_argument('--gpu', dest='gpu_id', type=int, default=0)
     parser.add_argument('--data_dir', dest='data_dir', type=str, default='')
     parser.add_argument('--data_size', dest='data_size', type=str, default='big')
@@ -62,7 +62,6 @@ def train(dataloader, cnn_model, rnn_model, batch_size,
 
         imgs, captions, cap_lens, \
             class_ids, keys = prepare_data(data)
-
 
         # words_features: batch_size x nef x 17 x 17
         # sent_code: batch_size x nef
@@ -92,7 +91,7 @@ def train(dataloader, cnn_model, rnn_model, batch_size,
         #
         # `clip_grad_norm` helps prevent
         # the exploding gradient problem in RNNs / LSTMs.
-        torch.nn.utils.clip_grad_norm(rnn_model.parameters(),
+        torch.nn.utils.clip_grad_norm_(rnn_model.parameters(),
                                       cfg.TRAIN.RNN_GRAD_CLIP)
         optimizer.step()
 
@@ -166,7 +165,7 @@ def build_models():
     # build model ############################################################
     text_encoder = RNN_ENCODER(dataset.n_words, nhidden=cfg.TEXT.EMBEDDING_DIM)
     image_encoder = CNN_ENCODER(cfg.TEXT.EMBEDDING_DIM)
-    labels = torch.LongTensor(range(batch_size)).requires_grad_(True)
+    labels = torch.LongTensor(range(batch_size))
     start_epoch = 0
     if cfg.TRAIN.NET_E != '':
         state_dict = torch.load(cfg.TRAIN.NET_E)
