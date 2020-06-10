@@ -27,7 +27,7 @@ def func_attention(query, context, gamma1):
     attn = torch.bmm(contextT, query)
     # --> batch*sourceL x queryL
     attn = attn.view(batch_size*sourceL, queryL)
-    attn = nn.Softmax()(attn)  # Eq. (8)
+    attn = nn.Softmax(dim=1)(attn)  # Eq. (8)
 
     # --> batch x sourceL x queryL
     attn = attn.view(batch_size, sourceL, queryL)
@@ -36,7 +36,7 @@ def func_attention(query, context, gamma1):
     attn = attn.view(batch_size*queryL, sourceL)
 
     attn = attn * gamma1
-    attn = nn.Softmax()(attn)
+    attn = nn.Softmax(dim=1)(attn)
     attn = attn.view(batch_size, queryL, sourceL)
     # --> batch x sourceL x queryL
     attnT = torch.transpose(attn, 1, 2).contiguous()
@@ -54,7 +54,7 @@ class GLAttentionGeneral(nn.Module):
         self.conv_context = conv1x1(cdf, idf)
         self.conv_sentence_vis = conv1x1(idf, idf)
         self.linear = nn.Linear(100, idf)
-        self.sm = nn.Softmax()
+        self.sm = nn.Softmax(dim=1)
         self.mask = None
 
     def applyMask(self, mask):
@@ -91,7 +91,7 @@ class GLAttentionGeneral(nn.Module):
         if self.mask is not None:
             # batch_size x sourceL --> batch_size*queryL x sourceL
             mask = self.mask.repeat(queryL, 1)
-            attn.data.masked_fill_(mask.data, -float('inf'))
+            attn.data.masked_fill_(mask.data.bool(), -float('inf'))
         attn = self.sm(attn)  # Eq. (2)
         # --> batch x queryL x sourceL
         attn = attn.view(batch_size, queryL, sourceL)
@@ -110,7 +110,7 @@ class GLAttentionGeneral(nn.Module):
         sentence = sentence.repeat(1, 1, ih, iw)
         sentence_vs = torch.mul(input, sentence)   # batch x idf x ih x iw
         sentence_vs = self.conv_sentence_vis(sentence_vs) # batch x idf x ih x iw
-        sent_att = nn.Softmax()(sentence_vs)  # batch x idf x ih x iw
+        sent_att = nn.Softmax(dim=1)(sentence_vs)  # batch x idf x ih x iw
         weightedSentence = torch.mul(sentence, sent_att)  # batch x idf x ih x iw
 
         return weightedContext, weightedSentence, word_attn, sent_att
