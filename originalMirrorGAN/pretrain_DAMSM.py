@@ -22,9 +22,7 @@ from PIL import Image
 from tqdm import tqdm
 
 import torch
-import torch.nn as nn
 import torch.optim as optim
-from torch.autograd import Variable
 import torch.backends.cudnn as cudnn
 import torchvision.transforms as transforms
 
@@ -168,7 +166,7 @@ def build_models():
     # build model ############################################################
     text_encoder = RNN_ENCODER(dataset.n_words, nhidden=cfg.TEXT.EMBEDDING_DIM)
     image_encoder = CNN_ENCODER(cfg.TEXT.EMBEDDING_DIM)
-    labels = Variable(torch.LongTensor(range(batch_size)))
+    labels = torch.LongTensor(range(batch_size)).requires_grad_(True)
     start_epoch = 0
     if cfg.TRAIN.NET_E != '':
         state_dict = torch.load(cfg.TRAIN.NET_E)
