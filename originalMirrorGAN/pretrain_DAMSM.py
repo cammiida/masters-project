@@ -5,8 +5,7 @@ from miscc.utils import build_super_images
 from miscc.losses import sent_loss, words_loss
 from cfg.config import cfg, cfg_from_file
 
-from datasets import TextDataset
-from datasets import prepare_data
+from datasets import TextDataset, prepare_data
 
 from model import RNN_ENCODER, CNN_ENCODER
 
@@ -20,6 +19,7 @@ import dateutil.tz
 import argparse
 import numpy as np
 from PIL import Image
+from tqdm import tqdm
 
 import torch
 import torch.nn as nn
@@ -243,7 +243,7 @@ if __name__ == "__main__":
     imsize = cfg.TREE.BASE_SIZE * (2 ** (cfg.TREE.BRANCH_NUM-1))
     batch_size = cfg.TRAIN.BATCH_SIZE
     image_transform = transforms.Compose([
-        transforms.Scale(int(imsize * 76 / 64)),
+        transforms.Resize(int(imsize * 76 / 64)),
         transforms.RandomCrop(imsize),
         transforms.RandomHorizontalFlip()])
     dataset = TextDataset(cfg.DATA_DIR, 'train',
@@ -274,7 +274,7 @@ if __name__ == "__main__":
     # At any point you can hit Ctrl + C to break out of training early.
     try:
         lr = cfg.TRAIN.ENCODER_LR
-        for epoch in range(start_epoch, cfg.TRAIN.MAX_EPOCH):
+        for epoch in tqdm(range(start_epoch, cfg.TRAIN.MAX_EPOCH)):
             optimizer = optim.Adam(para, lr=lr, betas=(0.5, 0.999))
             epoch_start_time = time.time()
             count = train(dataloader, image_encoder, text_encoder,

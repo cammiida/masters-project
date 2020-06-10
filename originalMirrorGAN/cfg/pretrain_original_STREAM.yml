@@ -1,4 +1,10 @@
-CONFIG_NAME: 'STREAM'
+CONFIG_NAME: 'STREAM_original'
+DATASET_NAME: 'coco'
+
+DATA_DIR: '../data/'
+OUTPUT_DIR: '../output/'
+GPU_ID: -1
+WORKERS: 1
 
 TRAIN:
   FLAG: TRUE

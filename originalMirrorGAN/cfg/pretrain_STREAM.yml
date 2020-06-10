@@ -1,5 +1,8 @@
 CONFIG_NAME: 'STREAM'
 
+OUTPUT_PATH: '../output/STREAM/new'
+
+
 TRAIN:
   FLAG: TRUE
   MAX_EPOCH: 4
