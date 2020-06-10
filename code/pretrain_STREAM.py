@@ -30,7 +30,7 @@ def parse_args():
     parser.add_argument('--cfg', dest='cfg_file', default='cfg/validate_STREAM.yml',
                         help='optional config file', type=str)
     parser.add_argument('--data_size', dest='data_size', type=str)
-    parser.add_argument('--root_data_dir', dest='root_data_dir', type=str, default='../data')
+    parser.add_argument('--data_dir', dest='data_dir', type=str, default='../data')
     parser.add_argument('--train', dest='train', type=str2bool)
     parser.add_argument('--val', dest='validate', type=str2bool)
     parser.add_argument('--preprocess_threshold', dest='threshold', type=int)
@@ -485,12 +485,12 @@ def set_config_params(args):
         cfg.TRAIN.FLAG = args.train
 
 
-    if args.root_data_dir != '':
-        cfg.ROOT_DIR = args.root_data_dir
+    if args.data_dir != '':
+        cfg.DATA_DIR = args._data_dir
     if args.data_size:
         cfg.DATASET_SIZE = args.data_size
 
-    cfg.DATA_DIR = os.path.join(cfg.ROOT_DATA_DIR, cfg.DATASET_SIZE)
+    cfg.DATA_DIR = os.path.join(cfg.DATA_DIR, cfg.DATASET_SIZE)
     # If model names are not empty...
     if cfg.TRAIN.CAP_CNN and cfg.TRAIN.CAP_RNN:
         assert cfg.MODELS_DIR != '', \
@@ -513,13 +513,12 @@ if __name__ == '__main__':
     args = parse_args()
     set_config_params(args)
 
-    caption_path = os.path.join(cfg.DATA_DIR, 'annotations/captions_train2014.json')
-    # TODO: Change back to cfg.DATA_DIR
-    vocab_path = os.path.join(cfg.ROOT_DATA_DIR, cfg.DATASET_SIZE, cfg.VOCAB.NAME)
+    #caption_path = os.path.join(cfg.DATA_DIR, 'annotations/captions_train2014.json')
+    #vocab_path = os.path.join(cfg.DATA_DIR, cfg.DATASET_SIZE, cfg.VOCAB.NAME)
 
     # Load vocabulary
-    with open(vocab_path, 'rb') as f:
-        vocab = pickle.load(f)
+    #with open(vocab_path, 'rb') as f:
+    #    vocab = pickle.load(f)
 
 
     pretrain_STREAM()
