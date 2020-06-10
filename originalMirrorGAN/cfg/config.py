@@ -50,12 +50,13 @@ __C.TRAIN.SMOOTH.LAMBDA1 = 1.0
 
 # Caption_model_settings added by tingting
 __C.CAP = edict()
-__C.CAP.embed_size = 256
-__C.CAP.hidden_size = 512
-__C.CAP.num_layers = 1
-__C.CAP.learning_rate = 0.001
-__C.CAP.caption_cnn_path = ''
-__C.CAP.caption_rnn_path = ''
+__C.CAP.EMBED_SIZE = 256
+__C.CAP.HIDDEN_SIZE = 512
+__C.CAP.NUM_LAYERS = 1
+__C.CAP.LEARNING_RATE = 0.001
+__C.CAP.CAPTION_CNN_PATH = ''
+__C.CAP.CAPTION_RNN_PATH = ''
+__C.CAP.USE_ORIGINAL = False
 
 
 # Modal options
@@ -73,6 +74,14 @@ __C.TEXT = edict()
 __C.TEXT.CAPTIONS_PER_IMAGE = 10
 __C.TEXT.EMBEDDING_DIM = 256
 __C.TEXT.WORDS_NUM = 18
+
+# Vocab indices
+__C.VOCAB = edict()
+__C.VOCAB.PAD = 0
+__C.VOCAB.START = 1
+__C.VOCAB.END = 2
+__C.VOCAB.UNK = 3
+__C.VOCAB.THRESHOLD = 4
 
 
 def _merge_a_into_b(a, b):

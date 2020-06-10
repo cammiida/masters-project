@@ -1,13 +1,11 @@
-CONFIG_NAME: 'STEM'
-
-CONFIG_NAME: 'MirrorGAN'
 DATASET_NAME: 'coco'
+
+CONFIG_NAME: 'STEM'
 DATA_DIR: '../data/'
+DATA_SIZE: 'big'
 GPU_ID: -1
 WORKERS: 1
 OUTPUT_PATH: '../output/'
-TREE:
-    BRANCH_NUM: 3
 
 TRAIN:
     NET_E: ''

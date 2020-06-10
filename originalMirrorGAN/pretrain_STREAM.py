@@ -22,7 +22,7 @@ from datasets import TextDataset
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Train a STREAM network')
-    parser.add_argument('--cfg', dest='cfg_file', default='cfg/validate_STREAM.yml',
+    parser.add_argument('--cfg', dest='cfg_file', default='cfg/train_STREAM.yml',
                         help='optional config file', type=str)
     parser.add_argument('--data_size', dest='data_size', type=str)
     parser.add_argument('--data_dir', dest='data_dir', type=str, default='../data')
@@ -312,7 +312,7 @@ def validate(caption_cnn, caption_rnn, val_loader, ixtoword):
         captions = captions.to(cfg.DEVICE)
 
 
-        if cfg.TRAIN.STREAM.USE_ORIGINAL:
+        if cfg.CAP.USE_ORIGINAL:
             print('Using original STREAM for validation')
             targets = captions
             targets_packed = pack_padded_sequence(captions, cap_lens, batch_first=True)[0]
@@ -327,7 +327,7 @@ def validate(caption_cnn, caption_rnn, val_loader, ixtoword):
             targets_packed = pack_padded_sequence(targets, decode_lengths, batch_first=True)[0]
 
         cap_loss = caption_loss(scores_packed, targets_packed) * cfg.TRAIN.SMOOTH.LAMBDA1
-        if not cfg.TRAIN.STREAM.USE_ORIGINAL:
+        if not cfg.CAP.USE_ORIGINAL:
             cap_loss += ((1. - alphas.sum(dim=1)) ** 2).mean()
         losses.update(cap_loss.item(), sum(cap_lens))
 
@@ -340,7 +340,7 @@ def validate(caption_cnn, caption_rnn, val_loader, ixtoword):
             references.append(img_captions)
 
         # Hypotheses
-        if cfg.TRAIN.STREAM.USE_ORIGINAL:
+        if cfg.CAP.USE_ORIGINAL:
             preds = caption_rnn.sample(encoder_features)
         else:
             _, preds = torch.max(scores, dim=2)
@@ -353,7 +353,7 @@ def validate(caption_cnn, caption_rnn, val_loader, ixtoword):
         for j, p in enumerate(preds):
             pred = p[:cap_lens[j]]
             pred = [w for w in pred if w not in [cfg.VOCAB.PAD, cfg.VOCAB.START, cfg.VOCAB.END]]
-            if cfg.TRAIN.STREAM.USE_ORIGINAL:
+            if cfg.CAP.USE_ORIGINAL:
                 pred = [w for w in pred if w != 96]
             temp_preds.append(pred)  # remove pads, start, and end
         preds = temp_preds
@@ -389,19 +389,19 @@ def caption_loss(cap_output, captions):
 def init_model(ixtoword):
 
 
-    if cfg.TRAIN.STREAM.USE_ORIGINAL:
-        caption_cnn = CAPTION_CNN(embed_size=cfg.TEXT.EMBEDDING_DIM)
-        caption_rnn = CAPTION_RNN(embed_size=cfg.TEXT.EMBEDDING_DIM, hidden_size=cfg.TRAIN.STREAM.HIDDEN_SIZE,
-                                  vocab_size=len(ixtoword), num_layers=cfg.TRAIN.STREAM.NUM_LAYERS)
+    if cfg.CAP.USE_ORIGINAL:
+        caption_cnn = CAPTION_CNN(embed_size=cfg.CAP.EMBED_SIZE)
+        caption_rnn = CAPTION_RNN(embed_size=cfg.CAP.EMBED_SIZE, hidden_size=cfg.CAP.HIDDEN_SIZE,
+                                  vocab_size=len(ixtoword), num_layers=cfg.CAP.NUM_LAYERS)
     else:
         caption_cnn = Encoder()
         caption_rnn = Decoder(idx2word=ixtoword)
-    decoder_optimizer = torch.optim.Adam(params=caption_rnn.parameters(), lr=cfg.TRAIN.DECODER_LR)
+    decoder_optimizer = torch.optim.Adam(params=caption_rnn.parameters(), lr=cfg.CAP.LEARNING_RATE)
 
-    if cfg.TRAIN.caption_cnn_path and cfg.TRAIN.caption_rnn_path:
+    if cfg.CAP.CAPTION_CNN_PATH and cfg.CAP.CAPTION_RNN_PATH:
         print('Pre-Trained Caption Model')
-        caption_cnn_checkpoint = torch.load(cfg.TRAIN.caption_cnn_path, map_location=lambda storage, loc: storage)
-        caption_rnn_checkpoint = torch.load(cfg.TRAIN.caption_rnn_path, map_location=lambda storage, loc: storage)
+        caption_cnn_checkpoint = torch.load(cfg.CAP.CAPTION_CNN_PATH, map_location=lambda storage, loc: storage)
+        caption_rnn_checkpoint = torch.load(cfg.CAP.CAPTION_RNN_PATH, map_location=lambda storage, loc: storage)
 
         caption_cnn.load_state_dict(caption_cnn_checkpoint['model_state_dict'])
         caption_rnn.load_state_dict(caption_rnn_checkpoint['model_state_dict'])
@@ -471,9 +471,7 @@ def set_config_params(args):
         cfg_from_file(args.cfg_file)
 
     if args.train is not None:
-        print("args.train: ", args.train)
         cfg.TRAIN.FLAG = args.train
-
 
     if args.data_dir != '':
         cfg.DATA_DIR = args.data_dir
@@ -481,13 +479,6 @@ def set_config_params(args):
         cfg.DATASET_SIZE = args.data_size
 
     cfg.DATA_DIR = os.path.join(cfg.DATA_DIR, cfg.DATASET_SIZE)
-    # If model names are not empty...
-    if cfg.TRAIN.CAP_CNN and cfg.TRAIN.CAP_RNN:
-        assert cfg.MODELS_DIR != '', \
-            "Directory for models must be set."
-
-        cfg.TRAIN.CAP_CNN = os.path.join(cfg.MODELS_DIR, cfg.DATASET_SIZE, cfg.TRAIN.CAP_CNN)
-        cfg.TRAIN.CAP_RNN = os.path.join(cfg.MODELS_DIR, cfg.DATASET_SIZE, cfg.TRAIN.CAP_RNN)
 
     # Set device
     if torch.cuda.is_available():
@@ -502,13 +493,6 @@ def set_config_params(args):
 if __name__ == '__main__':
     args = parse_args()
     set_config_params(args)
-
-    #caption_path = os.path.join(cfg.DATA_DIR, 'annotations/captions_train2014.json')
-    #vocab_path = os.path.join(cfg.DATA_DIR, cfg.DATASET_SIZE, cfg.VOCAB.NAME)
-
-    # Load vocabulary
-    #with open(vocab_path, 'rb') as f:
-    #    vocab = pickle.load(f)
 
 
     pretrain_STREAM()

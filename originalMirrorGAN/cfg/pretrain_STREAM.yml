@@ -1,21 +1,23 @@
-CONFIG_NAME: 'STREAM'
+DATASET_NAME: 'coco'
 
-OUTPUT_PATH: '../output/STREAM/new'
-
+CONFIG_NAME: 'STREAM_new'
+DATA_DIR: '../data/'
+DATA_SIZE: 'big'
+GPU_ID: -1
+WORKERS: 1
+OUTPUT_PATH: '../output/'
 
 TRAIN:
   FLAG: TRUE
   MAX_EPOCH: 4
   BATCH_SIZE: 32
   RNN_GRAD_CLIP: 5.
-  DECODER_LR: 0.0004
-  CAP_CNN: '' # No pretrained model
-  CAP_RNN: '' # No pretrained model
-  STREAM:
-    HIDDEN_SIZE: 512
-    USE_ORIGINAL: False
-    NUM_LAYERS: 1
 
-TEXT:
-  EMBEDDING_DIM: 256
-
+CAP:
+  EMBED_SIZE: 256
+  HIDDEN_SIZE: 512
+  NUM_LAYERS: 1
+  LEARNING_RATE: 0.0004
+  CAPTION_CNN_PATH: '' # No pretrained model
+  CAPTION_RNN_PATN: '' # No pretrained model
+  USE_ORIGINAL: False
