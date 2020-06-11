@@ -10,6 +10,7 @@ from miscc.utils import weights_init, load_params, copy_G_params
 from model import G_DCGAN, G_NET
 from datasets import prepare_data
 from model import RNN_ENCODER, CNN_ENCODER, CAPTION_CNN, CAPTION_RNN, Encoder, Decoder
+from model import MyDataParallel
 from miscc.losses import words_loss
 from miscc.losses import discriminator_loss, generator_loss, KL_loss
 import os
@@ -236,6 +237,12 @@ class Trainer(object):
     def train(self):
         print('Started training...')
         text_encoder, image_encoder, caption_cnn, caption_rnn, netG, netsD, start_epoch = self.build_models()
+
+        # Parallelize netG and netsD models
+        netG = MyDataParallel(netG)
+        for i in range(len(netsD)):
+            netsD[i] = MyDataParallel(netsD[i])
+
         avg_param_G = copy_G_params(netG)
         optimizerG, optimizersD = self.define_optimizers(netG, netsD)
         real_labels, fake_labels, match_labels = self.prepare_labels()
