@@ -246,14 +246,14 @@ class Trainer(object):
         fixed_noise = torch.FloatTensor(batch_size, nz).normal_(0, 1).to(cfg.DEVICE)
 
         gen_iterations = 0
-        for epoch in tqdm(range(start_epoch, self.max_epoch)):
+        for epoch in range(start_epoch, self.max_epoch):
             start_t = time.time()
 
-            data_iter = iter(self.data_loader)
+            data_iter = iter(tqdm(self.data_loader, total=self.num_batches))
             step = 0
             while step < self.num_batches:
                 # (1) Prepare training data and Compute text embeddings
-                data = data_iter.next()
+                data = next(data_iter) # data_iter.next()
                 imgs, captions, cap_lens, class_ids, keys = prepare_data(data)
 
                 hidden = text_encoder.init_hidden(batch_size)
