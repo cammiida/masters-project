@@ -187,9 +187,20 @@ def generator_loss(netsD, image_encoder, caption_cnn, caption_rnn, captions, fak
         if i == (numDs - 1):
             fakeimg_feature = caption_cnn(fake_imgs[i])
             captions.to(cfg.DEVICE)
-            target_cap = pack_padded_sequence(captions, cap_lens.data.tolist(), batch_first=True)[0].to(cfg.DEVICE)
-            cap_output = caption_rnn(fakeimg_feature, captions, cap_lens)
-            cap_loss = caption_loss(cap_output, target_cap) * cfg.TRAIN.SMOOTH.LAMBDA1
+
+            if cfg.CAP.USE_ORIGINAL:
+                targets = pack_padded_sequence(captions, cap_lens, batch_first=True)[0]
+                scores = caption_rnn(fakeimg_feature, captions, cap_lens)
+            else:
+                scores, caps_sorted, decode_lengths, alphas = caption_rnn(fakeimg_feature, captions, cap_lens)
+                scores = pack_padded_sequence(scores, decode_lengths, batch_first=True)[0].to(cfg.DEVICE)
+                targets = pack_padded_sequence(caps_sorted, decode_lengths, batch_first=True)[0].to(cfg.DEVICE)
+
+            cap_loss = caption_loss(scores, targets) * cfg.TRAIN.SMOOTH.LAMBDA1
+
+            #target_cap = pack_padded_sequence(captions, cap_lens.data.tolist(), batch_first=True)[0].to(cfg.DEVICE)
+            #cap_output = caption_rnn(fakeimg_feature, captions, cap_lens)
+            #cap_loss = caption_loss(cap_output, target_cap) * cfg.TRAIN.SMOOTH.LAMBDA1
 
             errG_total += cap_loss
             logs += 'cap_loss: %.2f, ' % cap_loss
