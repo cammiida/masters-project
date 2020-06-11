@@ -177,7 +177,7 @@ class TextDataset(data.Dataset):
             for word in sent:
                 word_counts[word] += 1
 
-        vocab = [w for w in word_counts if word_counts[w] >= 0]
+        vocab = [w for w in word_counts if word_counts[w] >= cfg.VOCAB.THRESHOLD]
 
         ixtoword = {}
         ixtoword[0] = '<end>'
