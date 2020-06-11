@@ -119,12 +119,12 @@ class RNN_ENCODER(nn.Module):
         weight = next(self.parameters()).data
         if self.rnn_type == 'LSTM':
             return (weight.new(self.nlayers * self.num_directions,
-                                        bsz, self.nhidden).zero_().requires_grad_(True),
+                                        bsz, self.nhidden).zero_(),
                     weight.new(self.nlayers * self.num_directions,
-                                        bsz, self.nhidden).zero_().requires_grad_(True))
+                                        bsz, self.nhidden).zero_())
         else:
             return weight.new(self.nlayers * self.num_directions,
-                                       bsz, self.nhidden).zero_().requires_grad_(True)
+                                       bsz, self.nhidden).zero_()
 
     def forward(self, captions, cap_lens, hidden, mask=None):
         # input: torch.LongTensor of size batch x n_steps
@@ -287,7 +287,7 @@ class CA_NET(nn.Module):
 
     def reparametrize(self, mu, logvar):
         std = logvar.mul(0.5).exp_()
-        eps = torch.FloatTensor(std.size()).normal_().requires_grad_(True).to(cfg.DEVICE)
+        eps = torch.FloatTensor(std.size()).normal_().to(cfg.DEVICE)
         return eps.mul(std).add_(mu)
 
     def forward(self, text_embedding):

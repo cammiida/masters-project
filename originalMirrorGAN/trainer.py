@@ -165,9 +165,9 @@ class Trainer(object):
     def prepare_labels(self):
         print('Preparing labels...')
         batch_size = self.batch_size
-        real_labels = torch.FloatTensor(batch_size).fill_(1).requires_grad_(True)
-        fake_labels = torch.FloatTensor(batch_size).fill_(0).requires_grad_(True)
-        match_labels = torch.LongTensor(range(batch_size)).requires_grad_(True)
+        real_labels = torch.FloatTensor(batch_size).fill_(1)
+        fake_labels = torch.FloatTensor(batch_size).fill_(0)
+        match_labels = torch.LongTensor(range(batch_size))
 
         real_labels = real_labels.to(cfg.DEVICE)
         fake_labels = fake_labels.to(cfg.DEVICE)
@@ -242,8 +242,8 @@ class Trainer(object):
 
         batch_size = self.batch_size
         nz = cfg.GAN.Z_DIM
-        noise = torch.FloatTensor(batch_size, nz).requires_grad_(True).to(cfg.DEVICE)
-        fixed_noise = torch.FloatTensor(batch_size, nz).normal_(0, 1).requires_grad_(True).to(cfg.DEVICE)
+        noise = torch.FloatTensor(batch_size, nz).to(cfg.DEVICE)
+        fixed_noise = torch.FloatTensor(batch_size, nz).normal_(0, 1).to(cfg.DEVICE)
 
         gen_iterations = 0
         for epoch in tqdm(range(start_epoch, self.max_epoch)):
@@ -367,7 +367,7 @@ class Trainer(object):
 
             batch_size = self.batch_size
             nz = cfg.GAN.Z_DIM
-            noise = torch.FloatTensor(batch_size, nz).requires_grad_(False)
+            noise = torch.FloatTensor(batch_size, nz)
             noise = noise.to(cfg.DEVICE)
 
             model_dir = cfg.TRAIN.NET_G
@@ -457,13 +457,13 @@ class Trainer(object):
 
                 batch_size = captions.shape[0]
                 nz = cfg.GAN.Z_DIM
-                captions = torch.from_numpy(captions).requires_grad_(False)
-                cap_lens = torch.from_numpy(cap_lens).requires_grad_(False)
+                captions = torch.from_numpy(captions)
+                cap_lens = torch.from_numpy(cap_lens)
 
                 captions = captions.to(cfg.DEVICE)
                 cap_lens = cap_lens.to(cfg.DEVICE)
                 for i in range(1):  # 16
-                    noise = torch.FloatTensor(batch_size, nz).requires_grad_(False)
+                    noise = torch.FloatTensor(batch_size, nz)
                     noise = noise.to(cfg.DEVICE)
                     # (1) Extract text embeddings
                     hidden = text_encoder.init_hidden(batch_size)
