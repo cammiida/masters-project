@@ -102,7 +102,7 @@ if __name__ == "__main__":
     torch.manual_seed(args.manualSeed)
     # Set device
     if cfg.CUDA and torch.cuda.is_available():
-        torch.cuda.manual_seed_all(args.manual_seed)
+        torch.cuda.manual_seed_all(args.manualSeed)
         cfg.DEVICE = torch.device('cuda')
 
     now = datetime.datetime.now(dateutil.tz.tzlocal())
