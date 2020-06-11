@@ -75,19 +75,19 @@ class Trainer(object):
         # caption_cnn = CAPTION_CNN(cfg.CAP.embed_size) TODO: Base this on config
         caption_cnn = Encoder()
         caption_cnn.load_state_dict\
-            (torch.load(cfg.CAP.caption_cnn_path, map_location=lambda storage, loc: storage)['model_state_dict'])
+            (torch.load(cfg.CAP.CAPTION_CNN_PATH, map_location=lambda storage, loc: storage)['model_state_dict'])
         for p in caption_cnn.parameters():
             p.requires_grad = False
-        print('Load caption model from:', cfg.CAP.caption_cnn_path)
+        print('Load caption model from:', cfg.CAP.CAPTION_CNN_PATH)
         caption_cnn.eval()
 
         # caption_rnn = CAPTION_RNN(cfg.CAP.embed_size, cfg.CAP.hidden_size * 2, self.n_words, cfg.CAP.num_layers) TODO: Base this on config
         caption_rnn = Decoder(idx2word=self.ixtoword)
         caption_rnn.load_state_dict\
-            (torch.load(cfg.CAP.caption_rnn_path, map_location=lambda storage, loc: storage)['model_state_dict'])
+            (torch.load(cfg.CAP.CAPTION_RNN_PATH, map_location=lambda storage, loc: storage)['model_state_dict'])
         for p in caption_rnn.parameters():
             p.requires_grad = False
-        print('Load caption model from:', cfg.CAP.caption_rnn_path)
+        print('Load caption model from:', cfg.CAP.CAPTION_RNN_PATH)
 
         # Generator and Discriminator:
         netsD = []
