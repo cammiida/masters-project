@@ -1,26 +1,30 @@
 from model import G_NET, RNN_ENCODER
+from cfg.config import cfg
+from datasets import TextDataset
 
-import os
-import pickle
 import nltk
 import torch
+import torchvision.transforms as transforms
 
 
 class Experimenter():
-    def __init__(self, z_dim, embedding_dim, models_dir, version, data_dir, vocab=None):
+    def __init__(self, z_dim, embedding_dim, text_enc_path, version, data_dir):
         self.nz = z_dim
         self.embedding_dim = embedding_dim
-        self.models_dir = models_dir
+        self.text_enc_path = text_enc_path
         self.data_dir = data_dir
         self.version = version
 
-        # Load vocabulary
-        if vocab is None:
-            vocab_path = os.path.join(data_dir, 'big', 'vocab.pkl')
-            with open(vocab_path, 'rb') as f:
-                self.vocab = pickle.load(f)
-        else:
-            self.vocab = vocab
+        # Get data loader
+        imsize = cfg.TREE.BASE_SIZE * (2 ** (cfg.TREE.BRANCH_NUM - 1))
+        image_transform = transforms.Compose([
+            transforms.Resize(int(imsize * 76 / 64)),
+            transforms.RandomCrop(imsize),
+            transforms.RandomHorizontalFlip()])
+        dataset = TextDataset('../../data/big/', 'test', base_size=64, transform=image_transform)
+
+        self.dataset = dataset
+        print("dataset n_words: ", dataset.n_words)
 
         # Load text encoder
         self.build_text_encoder()
@@ -28,36 +32,38 @@ class Experimenter():
 
     def build_text_encoder(self):
         # Load trained text encoder model
-        text_encoder = RNN_ENCODER(len(self.vocab), nhidden=self.embedding_dim)
-        state_dict = torch.load(os.path.join(self.models_dir, 'big', 'STEM/text_encoder.pth'),
-                                map_location=lambda storage, loc: storage)
+        text_encoder = RNN_ENCODER(self.dataset.n_words, nhidden=self.embedding_dim)
+        state_dict = torch.load(self.text_enc_path, map_location=lambda storage, loc: storage)
         text_encoder.load_state_dict(state_dict)
         text_encoder.eval()
 
         self.text_encoder = text_encoder
 
 
-    def build_generator(self, epoch):
+    def build_generator(self, g_path):
         # Load trained generator model
         netG = G_NET()
-        state_dict = torch.load(
-            os.path.join(self.models_dir, 'big', 'MirrorGAN', self.version, 'netG_epoch_%d.pth' % epoch),
-            map_location=lambda storage, loc: storage)
+        state_dict = torch.load(g_path, map_location=lambda storage, loc: storage)
         netG.load_state_dict(state_dict)
         netG.eval()
 
         return netG
 
 
-    def sent_to_target_ids(self, sentences: list) -> (torch.Tensor, list):
+    def sent_to_target_ids(self, sentences: list) -> (torch.Tensor, torch.Tensor):
         # Prepare sentences
         tokenized_sentences = []
         for sent in sentences:
             tokens = nltk.tokenize.word_tokenize(str(sent).lower())
             caption = list()
-            caption.append(self.vocab('<start>'))
-            caption.extend([self.vocab(token) for token in tokens])
-            caption.append(self.vocab('<end>'))
+            #caption.append(self.dataset.wordtoix['<start>'])
+            for token in tokens:
+                if token in self.dataset.wordtoix:
+                    caption.append(self.dataset.wordtoix[token])
+                #else:
+                #    caption.append(self.dataset.wordtoix['<unk>'])
+            #caption.extend([self.dataset.wordtoix[token] for token in tokens])
+            caption.append(self.dataset.wordtoix['<end>'])
             target = torch.Tensor(caption)
             tokenized_sentences.append(target)
 
@@ -71,12 +77,14 @@ class Experimenter():
             end = lengths[i]
             targets[i, :end] = cap[:end]
 
+        lengths = torch.tensor(lengths)
+
         return targets, lengths
 
 
-    def generate_images(self, epoch, sentences=None, sentence_embeddings=None, sentence_lengths=None):
+    def generate_images(self, g_path, sentences=None, sentence_embeddings=None, sentence_lengths=None):
         # Load generator
-        netG = self.build_generator(epoch)
+        netG = self.build_generator(g_path)
 
         if sentences:
             targets, target_lengths = self.sent_to_target_ids(sentences)
@@ -105,5 +113,8 @@ class Experimenter():
             fake_imgs, _, _, _ = netG(noise, sent_emb, words_embs, mask)
 
         return fake_imgs
+
+
+
 
 
