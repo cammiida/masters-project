@@ -1,8 +1,9 @@
-CONFIG_NAME: 'MirrorGAN'
+CONFIG_NAME: 'MirrorGAN_original'
 DATASET_NAME: 'coco'
 DATA_DIR: '../data/'
 GPU_ID: -1
-WORKERS: 4
+CUDA: True
+WORKERS: 8
 OUTPUT_PATH: '../output/'
 TREE:
     BRANCH_NUM: 3
@@ -11,13 +12,13 @@ TRAIN:
     FLAG: True
     NET_G: ''
     B_NET_D: True
-    BATCH_SIZE: 12  # 22
+    BATCH_SIZE: 64  # 22
     MAX_EPOCH: 650
     SNAPSHOT_INTERVAL: 50
     DISCRIMINATOR_LR: 0.0002
     GENERATOR_LR: 0.0002
 
-    NET_E: '../models/text_encoder20.pth'
+    NET_E: '../output/coco/STEM/2020_06_11_12_14_13/Model/text_encoder115.pth'
     SMOOTH:
         GAMMA1: 4.0  # 1,2,5 good 4 best  10&100bad
         GAMMA2: 5.0
@@ -27,11 +28,11 @@ TRAIN:
 
 CAP:
     EMBED_SIZE: 256
-    HIDDEN_SIZE: 256
+    HIDDEN_SIZE: 512
     NUM_LAYERS: 1
     LEARNING_RATE: 0.001
-    CAPTION_CNN_PATH: '../models/encoder_epoch4_original.pkl'
-    CAPTION_RNN_PATH: '../models/decoder_epoch4_original.pkl'
+    CAPTION_CNN_PATH: '../output/coco/STREAM_original/2020_06_11_11_40_01/encoder_epoch4'
+    CAPTION_RNN_PATH: '../output/coco/STREAM_original/2020_06_11_11_40_01/decoder_epoch4'
     USE_ORIGINAL: True
 
 GAN:
