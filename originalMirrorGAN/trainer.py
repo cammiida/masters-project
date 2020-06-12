@@ -44,7 +44,10 @@ class Trainer(object):
     def build_models(self):
         print('Building models...')
         print('N_words: ', self.n_words)
-        # text encoders
+
+        #####################
+        ##  TEXT ENCODERS  ##
+        #####################
         if cfg.TRAIN.NET_E == '':
             print('Error: no pretrained text-image encoders')
             return
@@ -79,8 +82,8 @@ class Trainer(object):
         # cnn_encoder and rnn_encoder
         if cfg.CAP.USE_ORIGINAL:
             caption_cnn = CAPTION_CNN(embed_size=cfg.TEXT.EMBEDDING_DIM)
-            caption_rnn = CAPTION_RNN(embed_size=cfg.TEXT.EMBEDDING_DIM, hidden_size=cfg.TRAIN.STREAM.HIDDEN_SIZE,
-                                      vocab_size=self.n_words, num_layers=cfg.TRAIN.STREAM.NUM_LAYERS)
+            caption_rnn = CAPTION_RNN(embed_size=cfg.TEXT.EMBEDDING_DIM, hidden_size=cfg.CAP.HIDDEN_SIZE,
+                                      vocab_size=self.n_words, num_layers=cfg.CAP.NUM_LAYERS)
         else:
             caption_cnn = Encoder()
             caption_rnn = Decoder(idx2word=self.ixtoword)
@@ -92,34 +95,16 @@ class Trainer(object):
 
         for p in caption_cnn.parameters():
             p.requires_grad = False
-        print('Load caption model from: ', cfg.TRAIN.CAP_CNN)
+        print('Load caption model from: ', cfg.CAP.CAPTION_CNN_PATH)
         caption_cnn.eval()
 
-        # caption_rnn = CAPTION_RNN(cfg.TEXT.EMBEDDING_DIM, cfg.TRAIN.STREAM.HIDDEN_SIZE * 2, self.N_WORDS, cfg.TREE.BRANCH_NUM)
         for p in caption_rnn.parameters():
             p.requires_grad = False
-        print('Load caption model from: ', cfg.TRAIN.CAP_RNN)
-        # Caption models - cnn_encoder and rnn_decoder
+        print('Load caption model from: ', cfg.CAP.CAPTION_RNN_PATH)
 
-
-        # caption_cnn = CAPTION_CNN(cfg.CAP.embed_size) TODO: Base this on config
-        #caption_cnn = Encoder()
-        #caption_cnn.load_state_dict\
-        #    (torch.load(cfg.CAP.CAPTION_CNN_PATH, map_location=lambda storage, loc: storage)['model_state_dict'])
-        #for p in caption_cnn.parameters():
-        #    p.requires_grad = False
-        #print('Load caption model from:', cfg.CAP.CAPTION_CNN_PATH)
-        #caption_cnn.eval()
-
-        # caption_rnn = CAPTION_RNN(cfg.CAP.embed_size, cfg.CAP.hidden_size * 2, self.n_words, cfg.CAP.num_layers) TODO: Base this on config
-        #caption_rnn = Decoder(idx2word=self.ixtoword)
-        #caption_rnn.load_state_dict\
-        #    (torch.load(cfg.CAP.CAPTION_RNN_PATH, map_location=lambda storage, loc: storage)['model_state_dict'])
-        #for p in caption_rnn.parameters():
-        #    p.requires_grad = False
-        #print('Load caption model from:', cfg.CAP.CAPTION_RNN_PATH)
-
-        # Generator and Discriminator:
+        #################################
+        ##  GENERATOR & DISCRIMINATOR  ##
+        #################################
         netsD = []
         if cfg.GAN.B_DCGAN:
             if cfg.TREE.BRANCH_NUM == 1:

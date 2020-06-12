@@ -254,9 +254,7 @@ class Trainer(object):
         for i in range(len(netsD)):
             netsD[i] = MyDataParallel(netsD[i])
 
-
         avg_param_G = copy_G_params(netG)
-
         optimizerG, optimizersD = self.define_optimizers(netG, netsD)
         real_labels, fake_labels, match_labels = self.prepare_labels()
 

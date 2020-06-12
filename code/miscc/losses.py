@@ -191,9 +191,6 @@ def generator_loss(netsD, caption_cnn, caption_rnn, captions, fake_imgs,
             fakeimg_feature = caption_cnn(fake_imgs[i])
             captions.to(cfg.DEVICE)
 
-            #if isinstance(cap_lens, torch.Tensor):
-            #    cap_lens = cap_lens.data.tolist()
-
             if cfg.TRAIN.STREAM.USE_ORIGINAL:
                 targets = pack_padded_sequence(captions, cap_lens, batch_first=True)[0]
                 cap_output = caption_rnn(fakeimg_feature, captions, cap_lens)
