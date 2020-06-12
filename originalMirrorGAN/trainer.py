@@ -193,13 +193,13 @@ class Trainer(object):
     def save_model(self, netG, avg_param_G, netsD, epoch):
         backup_para = copy_G_params(netG)
         load_params(netG, avg_param_G)
-        torch.save(netG.state_dict(),
+        torch.save(netG.module.state_dict(),
                    '%s/netG_epoch_%d.pth' % (self.model_dir, epoch))
         load_params(netG, backup_para)
         #
         for i in range(len(netsD)):
             netD = netsD[i]
-            torch.save(netD.state_dict(),
+            torch.save(netD.module.state_dict(),
                        '%s/netD%d.pth' % (self.model_dir, i))
         print('Save G/Ds models.')
 
