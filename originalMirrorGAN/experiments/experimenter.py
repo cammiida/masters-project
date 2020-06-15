@@ -1,30 +1,15 @@
 from model import G_NET, RNN_ENCODER
-from cfg.config import cfg
-from datasets import TextDataset
-
 import nltk
 import torch
-import torchvision.transforms as transforms
 
 
 class Experimenter():
-    def __init__(self, z_dim, embedding_dim, text_enc_path, version, data_dir):
-        self.nz = z_dim
+    def __init__(self, embedding_dim, net_E, n_words, wordtoix):
         self.embedding_dim = embedding_dim
-        self.text_enc_path = text_enc_path
-        self.data_dir = data_dir
-        self.version = version
-
-        # Get data loader
-        imsize = cfg.TREE.BASE_SIZE * (2 ** (cfg.TREE.BRANCH_NUM - 1))
-        image_transform = transforms.Compose([
-            transforms.Resize(int(imsize * 76 / 64)),
-            transforms.RandomCrop(imsize),
-            transforms.RandomHorizontalFlip()])
-        dataset = TextDataset('../../data/big/', 'test', base_size=64, transform=image_transform)
-
-        self.dataset = dataset
-        print("dataset n_words: ", dataset.n_words)
+        self.net_E = net_E
+        self.n_words = n_words
+        self.wordtoix = wordtoix
+        print("dataset n_words: ", n_words)
 
         # Load text encoder
         self.build_text_encoder()
@@ -32,18 +17,18 @@ class Experimenter():
 
     def build_text_encoder(self):
         # Load trained text encoder model
-        text_encoder = RNN_ENCODER(self.dataset.n_words, nhidden=self.embedding_dim)
-        state_dict = torch.load(self.text_enc_path, map_location=lambda storage, loc: storage)
+        text_encoder = RNN_ENCODER(self.n_words, nhidden=self.embedding_dim)
+        state_dict = torch.load(self.net_E, map_location=lambda storage, loc: storage)
         text_encoder.load_state_dict(state_dict)
         text_encoder.eval()
 
         self.text_encoder = text_encoder
 
 
-    def build_generator(self, g_path):
+    def build_generator(self, net_G):
         # Load trained generator model
         netG = G_NET()
-        state_dict = torch.load(g_path, map_location=lambda storage, loc: storage)
+        state_dict = torch.load(net_G, map_location=lambda storage, loc: storage)
         netG.load_state_dict(state_dict)
         netG.eval()
 
@@ -56,14 +41,14 @@ class Experimenter():
         for sent in sentences:
             tokens = nltk.tokenize.word_tokenize(str(sent).lower())
             caption = list()
-            #caption.append(self.dataset.wordtoix['<start>'])
+            #caption.append(self.wordtoix['<start>'])
             for token in tokens:
-                if token in self.dataset.wordtoix:
-                    caption.append(self.dataset.wordtoix[token])
+                if token in self.wordtoix:
+                    caption.append(self.wordtoix[token])
                 #else:
-                #    caption.append(self.dataset.wordtoix['<unk>'])
-            #caption.extend([self.dataset.wordtoix[token] for token in tokens])
-            caption.append(self.dataset.wordtoix['<end>'])
+                #    caption.append(self.wordtoix['<unk>'])
+            #caption.extend([self.wordtoix[token] for token in tokens])
+            caption.append(self.wordtoix['<end>'])
             target = torch.Tensor(caption)
             tokenized_sentences.append(target)
 
@@ -82,9 +67,9 @@ class Experimenter():
         return targets, lengths
 
 
-    def generate_images(self, g_path, sentences=None, sentence_embeddings=None, sentence_lengths=None):
+    def generate_images(self, net_G, z_dim, sentences=None, sentence_embeddings=None, sentence_lengths=None):
         # Load generator
-        netG = self.build_generator(g_path)
+        netG = self.build_generator(net_G)
 
         if sentences:
             targets, target_lengths = self.sent_to_target_ids(sentences)
@@ -102,7 +87,7 @@ class Experimenter():
             # sent_emb: batch_size x nef
             words_embs, sent_emb = self.text_encoder(targets, target_lengths, hidden)
             words_embs, sent_emb = words_embs.detach(), sent_emb.detach()
-            noise = torch.FloatTensor(batch_size, self.nz)
+            noise = torch.FloatTensor(batch_size, z_dim)
             mask = (targets == 0)
             num_words = words_embs.size(2)
             if mask.size(1) > num_words:
