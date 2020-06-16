@@ -347,7 +347,7 @@ def validate(caption_cnn, caption_rnn, val_loader, ixtoword):
         # References
         for j in range(targets.shape[0]):
             img_caps = targets[j].tolist()  # validation dataset only has 1 unique caption per img
-            clean_cap = [w for w in img_caps if w not in [cfg.VOCAB.PAD, cfg.VOCAB.START, cfg.VOCAB.END]]  # remove pad, start, and end
+            clean_cap = [w for w in img_caps if w != cfg.VOCAB.PAD]  # remove pad, start, and end
             img_captions = list(map(lambda c: clean_cap, img_caps))
             test_references.append(clean_cap)
             references.append(img_captions)
@@ -365,7 +365,7 @@ def validate(caption_cnn, caption_rnn, val_loader, ixtoword):
         temp_preds = list()
         for j, p in enumerate(preds):
             pred = p[:cap_lens[j]]
-            pred = [w for w in pred if w not in [cfg.VOCAB.PAD, cfg.VOCAB.START, cfg.VOCAB.END]]
+            pred = [w for w in pred if w != cfg.VOCAB.PAD]
             if cfg.CAP.USE_ORIGINAL:
                 pred = [w for w in pred if w != 96]
             temp_preds.append(pred)  # remove pads, start, and end

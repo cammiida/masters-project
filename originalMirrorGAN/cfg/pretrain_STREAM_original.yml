@@ -3,9 +3,9 @@ DATASET_NAME: 'coco'
 CONFIG_NAME: 'STREAM_original'
 DATA_DIR: '../data/'
 DATA_SIZE: 'big'
-OUTPUT_PATH: '../output/'
 CUDA: True
 WORKERS: 8
+OUTPUT_PATH: '../output/'
 
 TRAIN:
   FLAG: TRUE

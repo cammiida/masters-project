@@ -37,7 +37,6 @@ def parse_args():
     parser.add_argument('--cfg', dest='cfg_file',
                         help='optional config file',
                         default='cfg/pretrain_STEM.yml', type=str)
-    parser.add_argument('--gpu', dest='gpu_id', type=int, default=0)
     parser.add_argument('--data_dir', dest='data_dir', type=str, default='')
     parser.add_argument('--data_size', dest='data_size', type=str, default='big')
     parser.add_argument('--manualSeed', type=int, help='manual seed')
@@ -195,11 +194,6 @@ if __name__ == "__main__":
     if args.cfg_file is not None:
         cfg_from_file(args.cfg_file)
 
-    if args.gpu_id == -1:
-        cfg.CUDA = False
-    else:
-        cfg.GPU_ID = args.gpu_id
-
     if args.data_dir != '':
         cfg.DATA_DIR = args.data_dir
 
@@ -233,7 +227,6 @@ if __name__ == "__main__":
     mkdir_p(model_dir)
     mkdir_p(image_dir)
 
-    # torch.cuda.set_device(cfg.GPU_ID)
     cudnn.benchmark = True
 
     # Get data loader ##################################################
