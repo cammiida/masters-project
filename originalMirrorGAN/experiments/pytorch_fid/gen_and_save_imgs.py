@@ -1,29 +1,13 @@
 import os
-import pickle
-import argparse
-
-from datasets import get_loader
-from process_data import Vocabulary
-from experiments.experimenter import Experimenter
-from miscc.utils import mkdir_p
-
-import torchvision.transforms as transforms
-from tqdm import tqdm
+import random
 import torchvision.utils as vutils
-import torch
+from tqdm import tqdm
+import torchvision.transforms as transforms
 
-
-def parse_args():
-    parser = argparse.ArgumentParser(description='Generate images from validation set')
-    parser.add_argument('--output_dir', dest='output_dir', type=str, default='../output/experiments/FID_images')
-    parser.add_argument('--batch_size', dest='batch_size', type=int, default=32)
-    parser.add_argument('--data_dir', dest='data_dir', type=str, default='../data/')
-    parser.add_argument('--models_dir', dest='models_dir', type=str, default='../models')
-    parser.add_argument('--data_size', dest='data_size', type=str, default='big')
-    parser.add_argument('--model_version', dest='model_version', type=str, default='new')
-    parser.add_argument('--epoch', dest='epoch', type=int, default=50)
-    parser.add_argument('--ref_imgs_dir', dest='ref_imgs_dir', type=str, default='../data/big/val2014_resized')
-    return parser.parse_args()
+from experiments.experimenter import Experimenter
+from datasets import TextDataset
+from miscc.utils import mkdir_p
+from cfg.config import cfg as cfg
 
 
 def save_images(save_dir, images):
@@ -38,54 +22,71 @@ def save_images(save_dir, images):
 
     print('Saved img batch to %s' % save_dir)
 
-
-def create_loader(data_dir, vocab, batch_size, tree_base_size, tree_branch_num):
-    imsize = tree_base_size * (2 ** (tree_branch_num - 1))
-    transform = transforms.Compose([
-            transforms.Resize(int(imsize * 76 / 64)),
-            transforms.RandomCrop(imsize),
-            transforms.RandomHorizontalFlip()
-        ])
-
-    dataloader = get_loader(root_dir=data_dir, method='val', vocab=vocab, batch_size=batch_size, transform=transform,
-                            tree_base_size=tree_base_size, tree_branch_num=tree_branch_num)
-
-    return dataloader
+def delete_file(filepath):
+    if os.path.isfile(filepath):
+        os.remove(filepath)
+        print('%s deleted' % filepath)
 
 
-def gen_and_save_imgs(output_dir, batch_size, version, epoch, data_dir, models_dir, data_size):
-    ##############
-    # PARAMETERS #
-    ##############
-    gan_z_dim = 100
-    text_embedding_dim = 256
+def get_dataset_props(data_dir):
+    big_data_dir = os.path.join(cfg.DATA_DIR, 'big')
+    captions_path = os.path.join(cfg.DATA_DIR, cfg.DATA_SIZE, 'captions.pickle')
+    delete_file(captions_path)
 
-    f = open(os.path.join(data_dir, 'big', 'vocab.pkl'), 'rb')
-    vocab = pickle.load(f)
+    imsize = cfg.TREE.BASE_SIZE * (2 ** (cfg.TREE.BRANCH_NUM - 1))
+    image_transform = transforms.Compose([
+        transforms.Resize(int(imsize * 76 / 64)),
+        transforms.RandomCrop(imsize),
+        transforms.RandomHorizontalFlip()])
 
-    f = open(os.path.join(data_dir, data_size, 'test/filenames.pickle'), 'rb')
-    filenames = pickle.load(f)
-    print("len filenames: ", len(filenames))
+    dataset = TextDataset(big_data_dir, 'test', base_size=cfg.TREE.BASE_SIZE, transform=image_transform)
+    n_words = dataset.n_words
+    wordtoix = dataset.wordtoix
 
-    # Get one caption per image
+    delete_file(captions_path)
+
+    dataset = TextDataset(data_dir, 'test', base_size=cfg.TREE.BASE_SIZE, transform=image_transform)
+
     captions = []
-    cap_dir = os.path.join(data_dir, data_size, 'text')
-    # Get corresponding caption
-    for fname in filenames:
-        with open('%s/%s.txt' % (cap_dir, fname)) as f:
-            first_line = f.readline().rstrip()
-            captions.append(first_line)
+    for filename in dataset.filenames:
+        filepath = '%s/text/%s.txt' % (data_dir, filename)
+        with open(filepath, "r", encoding="utf-8") as f:
+            caps = f.read().split('\n')
+            cap = ''
+            trials = 0
+            # Take a random caption
+            while cap == '' or trials > cfg.TEXT.CAPTIONS_PER_IMAGE:
+                rand = random.randint(0, cfg.TEXT.CAPTIONS_PER_IMAGE - 1)
+                if caps[rand] != '': cap = caps[rand]
+                trials += 1
+            captions.append(cap)
 
+    delete_file(captions_path)
+
+    counter = 0
+    for cap in captions:
+        if cap == '':
+            counter += 1
+
+    print("num empty captions: ", counter)
+    print("len captions: ", len(captions))
+    print("len filenames: ", len(dataset.filenames))
+
+    return n_words, wordtoix, captions
+
+
+def gen_and_save_imgs(output_dir):
+    data_dir = os.path.join(cfg.DATA_DIR, cfg.DATA_SIZE)
+    n_words, wordtoix, captions = get_dataset_props(data_dir)
+
+    batch_size = cfg.TRAIN.BATCH_SIZE
     cap_batches = [captions[x:x+batch_size] for x in range(0, len(captions), batch_size)]
+    print("captions: ", captions)
     print(len(cap_batches))
-    experimenter = Experimenter(z_dim=gan_z_dim, embedding_dim=text_embedding_dim,
-                                models_dir=models_dir, version=version, data_dir=data_dir, vocab=vocab)
+
+    experimenter = Experimenter(embedding_dim=cfg.TEXT.EMBEDDING_DIM, net_E=cfg.TRAIN.NET_E,
+                                n_words=n_words, wordtoix=wordtoix)
     for cap_batch in tqdm(cap_batches):
-        images = experimenter.generate_images(epoch, sentences=cap_batch)[-1]
+        images = experimenter.generate_images(cfg.TRAIN.NET_G, z_dim=cfg.GAN.Z_DIM, sentences=cap_batch)[-1]
+        #print(images)
         save_images(output_dir, images)
-
-
-if __name__ == '__main__':
-    args = parse_args()
-    gen_and_save_imgs(args.output_dir, args.batch_size, args.model_version, args.epoch, args.data_dir,
-                      args.models_dir, args.data_size)

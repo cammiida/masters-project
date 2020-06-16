@@ -4,6 +4,9 @@ from experiments.pytorch_fid.fid_score import calculate_fid_given_paths
 import os, shutil
 import argparse
 import torch
+import pprint
+
+from cfg.config import cfg, cfg_from_file
 
 def delete_files(folder):
     for filename in os.listdir(folder):
@@ -18,33 +21,28 @@ def delete_files(folder):
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Generate images from validation set')
-    parser.add_argument('--output_dir', dest='output_dir', type=str, default='../output/experiments/FID_images')
-    parser.add_argument('--batch_size', dest='batch_size', type=int, default=32)
-    parser.add_argument('--data_dir', dest='data_dir', type=str, default='../data/')
-    parser.add_argument('--models_dir', dest='models_dir', type=str, default='../models')
-    parser.add_argument('--data_size', dest='data_size', type=str, default='big')
-    parser.add_argument('--model_version', dest='model_version', type=str, default='new')
-    parser.add_argument('--epoch', dest='epoch', type=int, default=50)
     parser.add_argument('--ref_imgs_dir', dest='ref_imgs_dir', type=str, default='val2014_resized')
+    parser.add_argument('--cfg', dest='cfg_file', default='cfg/experiments/fid_original.yml', help='optional config file', type=str)
     return parser.parse_args()
 
 if __name__ == '__main__':
     args = parse_args()
+    if args.cfg_file is not None:
+        cfg_from_file(args.cfg_file)
+    print('Using config:')
+    pprint.pprint(cfg)
 
     print('Generating and saving images from validation set...')
-    output_dir = os.path.join(args.output_dir, args.model_version)
-    gen_and_save_imgs(output_dir, args.batch_size, args.model_version, args.epoch, args.data_dir, args.models_dir, args.data_size)
+    output_dir = os.path.join(cfg.OUTPUT_PATH, cfg.CONFIG_NAME)
+    gen_and_save_imgs(output_dir)
     print('Generated and saved images.')
 
-
     print('Calculating FID score...')
-    ref_imgs_dir = os.path.join(args.data_dir, args.data_size, args.ref_imgs_dir)
-    cuda = False
-    if torch.cuda.is_available():
-        cuda = True
-    fid_score = calculate_fid_given_paths([ref_imgs_dir, output_dir], batch_size=args.batch_size, cuda=cuda, dims=2048)
+    ref_imgs_dir = os.path.join(cfg.DATA_DIR, cfg.DATA_SIZE, args.ref_imgs_dir)
+    cuda = True if cfg.CUDA and torch.cuda.is_available() else False
+    fid_score = calculate_fid_given_paths([ref_imgs_dir, output_dir], batch_size=cfg.TRAIN.BATCH_SIZE, cuda=cuda, dims=2048)
     print('The FID score is: ', fid_score)
 
     print('Deleting generated images...')
-    delete_files(args.output_dir)
+    delete_files(output_dir)
 
