@@ -26,7 +26,6 @@ def parse_args():
     parser.add_argument('--cfg', dest='cfg_file',
                         help='optional config file',
                         default='cfg/train_coco.yml', type=str)
-    parser.add_argument('--gpu', dest='gpu_id', type=int, default=-1)
     parser.add_argument('--data_dir', dest='data_dir', type=str, default='../data/big/')
     parser.add_argument('--manualSeed', type=int, help='manual seed')
     args = parser.parse_args()
