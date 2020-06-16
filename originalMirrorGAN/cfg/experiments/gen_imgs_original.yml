@@ -1,0 +1,42 @@
+CONFIG_NAME: 'original'
+DATASET_NAME: 'coco'
+
+DATA_DIR: '../../data/'
+DATA_SIZE: 'big'
+CUDA: True
+WORKERS: 8
+OUTPUT_PATH: '../../output/experiments/'
+
+TRAIN:
+  FLAG: False
+  # B_NET_D: True
+  NET_E: '../../models/big/STEM/text_encoder115.pth'
+  NET_G: '../../models/big/MirrorGAN/original'
+  BATCH_SIZE: 32
+  SMOOTH:
+        GAMMA1: 4.0  # 1,2,5 good 4 best  10&100bad
+        GAMMA2: 5.0
+        GAMMA3: 10.0  # 10good 1&100bad
+        LAMBDA: 0.0
+        LAMBDA1: 10.0
+
+TEXT:
+  EMBEDDING_DIM: 256
+  CAPTIONS_PER_IMAGE: 5
+
+TREE:
+  BASE_SIZE: 64
+  BRANCH_NUM: 3
+
+CAP:
+  NUM_LAYERS: 1
+  EMBED_SIZE: 256
+  HIDDEN_SIZE: 512
+  LEARNING_RATE: 0.001
+  USE_ORIGINAL: True
+
+GAN:
+    DF_DIM: 64
+    GF_DIM: 32
+    Z_DIM: 100
+    R_NUM: 2

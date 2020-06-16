@@ -3,14 +3,17 @@ DATASET_NAME: 'coco'
 CONFIG_NAME: 'STEM'
 DATA_DIR: '../data/'
 DATA_SIZE: 'big'
-OUTPUT_PATH: '../output/'
 CUDA: True
-WORKERS: 8
+OUTPUT_PATH: '../output/'
+
+TREE:
+    BRANCH_NUM: 1
+    BASE_SIZE: 299
 
 TRAIN:
+    BATCH_SIZE: 48
     NET_E: ''
     FLAG: True
-    BATCH_SIZE: 48
     MAX_EPOCH: 600
     SNAPSHOT_INTERVAL: 5
     ENCODER_LR: 0.002  # 0.0002best; 0.002good
@@ -21,10 +24,8 @@ TRAIN:
         GAMMA3: 10.0  # 10good 1&100bad
 
 TEXT:
-    EMBEDDING_DIM: 256
     CAPTIONS_PER_IMAGE: 5
+    EMBEDDING_DIM: 256
     WORDS_NUM: 15
-TREE:
-    BRANCH_NUM: 1
-    BASE_SIZE: 299
+
 

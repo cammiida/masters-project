@@ -3,15 +3,14 @@ DATASET_NAME: 'coco'
 CONFIG_NAME: 'STREAM_new'
 DATA_DIR: '../data/'
 DATA_SIZE: 'big'
-OUTPUT_PATH: '../output/'
 CUDA: True
-WORKERS: 8
+OUTPUT_PATH: '../output/'
 
 TRAIN:
-  FLAG: TRUE
-  MAX_EPOCH: 4
   BATCH_SIZE: 32
+  MAX_EPOCH: 4
   RNN_GRAD_CLIP: 5.
+  FLAG: TRUE
 
 CAP:
   EMBED_SIZE: 256

@@ -10,14 +10,13 @@ __C = edict()
 cfg = __C
 
 # Dataset name: flowers, birds
-__C.DATASET_NAME = 'birds'
+__C.DATASET_NAME = 'coco'
 __C.CONFIG_NAME = ''
 __C.DATA_DIR = ''
 __C.DATA_SIZE = 'big'
-__C.GPU_ID = -1
 __C.CUDA = False
 __C.DEVICE = 'cpu'
-__C.WORKERS = 6
+__C.WORKERS = 8
 __C.OUTPUT_PATH = ''
 __C.RNN_TYPE = 'LSTM'   # 'GRU'
 __C.B_VALIDATION = False
@@ -43,8 +42,8 @@ __C.TRAIN.B_NET_D = True
 
 __C.TRAIN.SMOOTH = edict()
 __C.TRAIN.SMOOTH.GAMMA1 = 5.0
-__C.TRAIN.SMOOTH.GAMMA3 = 10.0
 __C.TRAIN.SMOOTH.GAMMA2 = 5.0
+__C.TRAIN.SMOOTH.GAMMA3 = 10.0
 __C.TRAIN.SMOOTH.LAMBDA = 0.0
 __C.TRAIN.SMOOTH.LAMBDA1 = 1.0
 
@@ -79,9 +78,6 @@ __C.TEXT.WORDS_NUM = 18
 # Vocab indices
 __C.VOCAB = edict()
 __C.VOCAB.PAD = 0
-__C.VOCAB.START = 1
-__C.VOCAB.END = 2
-__C.VOCAB.UNK = 3
 __C.VOCAB.THRESHOLD = 4
 
 
