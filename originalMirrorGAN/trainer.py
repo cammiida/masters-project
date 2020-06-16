@@ -14,6 +14,7 @@ from model import MyDataParallel
 from miscc.losses import words_loss
 from miscc.losses import discriminator_loss, generator_loss, KL_loss
 import os
+import matplotlib.pyplot as plt
 import time
 import numpy as np
 from tqdm import tqdm
@@ -25,11 +26,11 @@ class Trainer(object):
         if cfg.TRAIN.FLAG:
             self.model_dir = os.path.join(output_dir, 'Model')
             self.image_dir = os.path.join(output_dir, 'Image')
+            self.losses_dir = os.path.join(output_dir, 'Losses')
             mkdir_p(self.model_dir)
             mkdir_p(self.image_dir)
+            mkdir_p(self.losses_dir)
 
-
-        #torch.cuda.set_device(cfg.GPU_ID)
         cudnn.benchmark = True
 
         self.batch_size = cfg.TRAIN.BATCH_SIZE
@@ -267,6 +268,8 @@ class Trainer(object):
         fixed_noise = torch.FloatTensor(batch_size, nz).normal_(0, 1).to(cfg.DEVICE)
 
         gen_iterations = 0
+        G_losses = []
+        D_losses = []
         for epoch in range(start_epoch, self.max_epoch):
             start_t = time.time()
 
@@ -331,6 +334,9 @@ class Trainer(object):
                                           words_embs, mask, image_encoder,
                                           captions, cap_lens, epoch, name='average')
                     load_params(netG, backup_para)
+
+                D_losses.append(errD_total.data.item())
+                G_losses.append(errG_total.data.item())
             end_t = time.time()
 
             print('''[%d/%d][%d]
@@ -341,8 +347,22 @@ class Trainer(object):
 
             if epoch % cfg.TRAIN.SNAPSHOT_INTERVAL == 0:  # and epoch != 0:
                 self.save_model(netG, avg_param_G, netsD, epoch)
+                self.save_losses(D_losses, G_losses, epoch)
 
         self.save_model(netG, avg_param_G, netsD, self.max_epoch)
+
+    def save_losses(self, D_losses, G_losses, epoch):
+        plt.figure(figsize=(10, 5))
+        plt.title("Generator and Discriminator Loss During Training")
+        plt.plot(G_losses, label="G")
+        plt.plot(D_losses, label="D")
+        plt.xlabel("iterations")
+        plt.ylabel("Loss")
+        plt.legend()
+
+        losses_name = 'G_D_losses_epoch_%d' % epoch
+        losses_path = os.path.join(self.losses_dir, losses_name)
+        plt.savefig(losses_path)
 
     def save_singleimages(self, images, filenames, save_dir,
                           split_dir, sentenceID=0):
