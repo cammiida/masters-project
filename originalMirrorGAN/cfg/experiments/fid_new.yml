@@ -1,4 +1,4 @@
-CONFIG_NAME: 'FID_original'
+CONFIG_NAME: 'FID_new'
 DATASET_NAME: 'coco'
 
 DATA_DIR: '../data/'
@@ -7,8 +7,7 @@ CUDA: True
 OUTPUT_PATH: '../output/experiments/'
 
 TRAIN:
-  FLAG: False
   NET_E: '../models/big/STEM/text_encoder115.pth'
-  NET_G: '../models/big/MirrorGAN/original/netG_epoch_160.pth'
+  NET_G: '../models/big/MirrorGAN/new/netG_epoch_160.pth'
   BATCH_SIZE: 32
 

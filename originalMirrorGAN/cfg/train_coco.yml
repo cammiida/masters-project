@@ -2,7 +2,6 @@ CONFIG_NAME: 'MirrorGAN_new'
 DATASET_NAME: 'coco'
 DATA_DIR: '../data/'
 CUDA: True
-WORKERS: 8
 OUTPUT_PATH: '../output/'
 
 TREE:
@@ -15,32 +14,14 @@ TRAIN:
     DISCRIMINATOR_LR: 0.0002
     GENERATOR_LR: 0.0002
     FLAG: True
-    NET_E: '../output/coco/STEM/2020_06_11_12_14_13/Model/text_encoder115.pth'
-    NET_G: '../output/coco/MirrorGAN_new/2020_06_15_19_02_12/Model/netG_epoch_129.pth'
-    B_NET_D: True
-
-    SMOOTH:
-        GAMMA1: 4.0  # 1,2,5 good 4 best  10&100bad
-        GAMMA2: 5.0
-        GAMMA3: 10.0  # 10good 1&100bad
-        LAMBDA: 0.0
-        LAMBDA1: 10.0
+    NET_E: '../models/big/STEM/text_encoder115.pth'
+    NET_G: '../models/big/MirrorGAN/new/netG_epoch_129.pth'
 
 CAP:
     EMBED_SIZE: 256
     HIDDEN_SIZE: 512
     NUM_LAYERS: 1
     LEARNING_RATE: 0.001
-    CAPTION_CNN_PATH: '../output/coco/STREAM_new/2020_06_11_11_39_38/encoder_epoch4'
-    CAPTION_RNN_PATH: '../output/coco/STREAM_new/2020_06_11_11_39_38/decoder_epoch4'
+    CAPTION_CNN_PATH: '../models/big/STREAM/new/encoder_epoch4'
+    CAPTION_RNN_PATH: '../models/big/STREAM/new/decoder_epoch4'
     USE_ORIGINAL: False
-
-GAN:
-    DF_DIM: 64
-    GF_DIM: 32
-    Z_DIM: 100
-    R_NUM: 2
-
-TEXT:
-    EMBEDDING_DIM: 256
-    CAPTIONS_PER_IMAGE: 5
