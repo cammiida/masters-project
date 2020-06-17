@@ -216,7 +216,6 @@ class TextDataset(data.Dataset):
         test_names = self.load_filenames(data_dir, 'test')
         if not os.path.isfile(filepath):
             train_captions = self.load_captions(data_dir, train_names)
-            print('train captions: ', train_captions)
             test_captions = self.load_captions(data_dir, test_names)
 
             train_captions, test_captions, ixtoword, wordtoix, n_words = \

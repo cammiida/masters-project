@@ -38,8 +38,6 @@ def gen_out_path(sent_type: str, epoch: int, title: str):
         if 'epoch_%d' % epoch in f_name:
             num_files += 1
 
-    print('num_files: ', num_files)
-
     file_name = 'epoch_%d_%s_%d' % (epoch, timestamp, num_files)
     output_path = os.path.join(output_dir, file_name)
     print('output_path: ', output_path)
@@ -83,18 +81,6 @@ def display_img_grid(imgs: torch.Tensor, title='Generated Images'):
 
     plt.show()
 
-'''
-def calculate_inception_score(imgs):
-    print('Calculating inception score...')
-    print('imgs.shape[-1]: ', imgs[-1].shape)
-
-    # Normalize values to be between 0 and 1
-    imgs -= imgs.min(1, keepdim=True)[0]
-    imgs /= imgs.max(1, keepdim=True)[0]
-
-    mean, std = inception_score(imgs=imgs, cuda=False, batch_size=1, resize=True)
-    print('i_score, mean, std: ', mean, std)
-'''
 
 ###############
 # EXPERIMENTS #
@@ -143,9 +129,9 @@ if __name__ == '__main__':
     # Parameters
     # TODO: Add this to and get from cfg
     sentence_category = 'descriptive'
-    start_epoch = 129
-    max_epoch = 129
-    epoch_inc = 10
+    start_epoch = 0
+    max_epoch = 160
+    epoch_inc = 32
     num_imgs = 4
 
 
@@ -174,12 +160,12 @@ if __name__ == '__main__':
             'a skier with a red jacket on going down the side of a mountain',
             'the pizza is cheesy with pepperoni for the topping',
             'boats at the dock with a city backdrop',
-            'brown horses are running on a green field'
-            #'A bunch of vehicles that are in the street.',
-            #'A street that goes on to a high way with the light on red.',
-            #'A large white teddy bear sitting on top of an SUV.',
-            #'A stationary train with the door wide open.',
-            #'A lamp with a shade sitting on top of an older model television.',
+            'brown horses are running on a green field',
+            'A bunch of vehicles that are in the street.',
+            'A street that goes on to a high way with the light on red.',
+            'A large white teddy bear sitting on top of an SUV.',
+            'A stationary train with the door wide open.',
+            'A lamp with a shade sitting on top of an older model television.',
 
                 #'A train on some tracks with power lines above it.',
                 #'An old truck carrying luggage at the back',
@@ -196,16 +182,16 @@ if __name__ == '__main__':
     }
 
     # DESCRIPTIVE SENTENCES
-    exp(experimenter_new, sentences, start_epoch=start_epoch, g_dir=g_dir, max_epoch=max_epoch,
-        epoch_inc=epoch_inc, sent_type='descriptive', num_imgs=num_imgs)
+    #exp(experimenter_new, sentences, start_epoch=start_epoch, g_dir=g_dir, max_epoch=max_epoch,
+    #    epoch_inc=epoch_inc, sent_type='descriptive', num_imgs=num_imgs)
 
     #exp(experimenter_original, sentences, g_dir=g_dir, start_epoch=start_epoch, max_epoch=max_epoch,
     #    epoch_inc=epoch_inc, sent_type='descriptive', num_imgs=num_imgs)
 
 
     # NONDESCRIPTIVE SENTENCES
-    #exp(experimenter_new, sentences, g_dir=g_dir, start_epoch=start_epoch, max_epoch=max_epoch,
-    #    epoch_inc=epoch_inc, version='new', sent_type='nondescriptive', num_imgs=num_imgs)
+    exp(experimenter_new, sentences, g_dir=g_dir, start_epoch=start_epoch, max_epoch=max_epoch,
+        epoch_inc=epoch_inc, sent_type='nondescriptive', num_imgs=num_imgs)
 
     #exp(experimenter_original, sentences, g_dir=g_dir, start_epoch=start_epoch, max_epoch=max_epoch,
     #    epoch_inc=epoch_inc, version='original', sent_type='nondescriptive', num_imgs=num_imgs)

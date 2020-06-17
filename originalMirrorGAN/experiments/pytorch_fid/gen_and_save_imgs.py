@@ -56,8 +56,8 @@ def get_dataset_props(data_dir):
             trials = 0
             # Take a random caption
             while cap == '' or trials > cfg.TEXT.CAPTIONS_PER_IMAGE:
-                rand = random.randint(0, cfg.TEXT.CAPTIONS_PER_IMAGE - 1)
-                if caps[rand] != '': cap = caps[rand]
+                if caps[trials] != '':
+                    cap = caps[trials]
                 trials += 1
             captions.append(cap)
 
@@ -68,10 +68,6 @@ def get_dataset_props(data_dir):
         if cap == '':
             counter += 1
 
-    print("num empty captions: ", counter)
-    print("len captions: ", len(captions))
-    print("len filenames: ", len(dataset.filenames))
-
     return n_words, wordtoix, captions
 
 
@@ -81,12 +77,9 @@ def gen_and_save_imgs(output_dir):
 
     batch_size = cfg.TRAIN.BATCH_SIZE
     cap_batches = [captions[x:x+batch_size] for x in range(0, len(captions), batch_size)]
-    print("captions: ", captions)
-    print(len(cap_batches))
 
     experimenter = Experimenter(embedding_dim=cfg.TEXT.EMBEDDING_DIM, net_E=cfg.TRAIN.NET_E,
                                 n_words=n_words, wordtoix=wordtoix)
     for cap_batch in tqdm(cap_batches):
         images = experimenter.generate_images(cfg.TRAIN.NET_G, z_dim=cfg.GAN.Z_DIM, sentences=cap_batch)[-1]
-        #print(images)
         save_images(output_dir, images)

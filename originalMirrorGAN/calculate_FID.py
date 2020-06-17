@@ -45,4 +45,5 @@ if __name__ == '__main__':
 
     print('Deleting generated images...')
     delete_files(output_dir)
+    print('Generated images deleted.')
 
