@@ -1,51 +1,46 @@
 # Text-To-Image Generator
 
 Combining MirrorGAN and BERT for generating images based on natural language input.
-Based on https://github.com/qiaott/MirrorGAN and https://github.com/ajamjoom/Image-Captions.
+Based on [https://github.com/qiaott/MirrorGAN][MirrorGAN] and [https://github.com/ajamjoom/Image-Captions][github_img_caps].
 
-# Instructions to run the code
+## Instructions to run the code
 
-TODO: Mention configuration of paths in config
 Install from requirements.txt with ``$ pip install requirements.txt``.
 
 
-## Download and clean data
+### Download and clean data
 1. Create three folders: (1) data, (2) models, and (3) output.
 2. Within folder each folder, create folders named 'big' and 'small'. See the main folder structure at the bottom of this page if you are unsure.
 3. Within data > big, create a folder named 'annotations'.
-4. Download the train 2014 and val2014 from the MS COCO dataset (http://cocodataset.org/#download) and place them inside the data folder.
-5. Download the COCO train/val 2014 captions (also from http://cocodataset.org/#download) and place them inside the data > big > annotations folder.
-6. Run the process_data.py file. This will generate the train2014_resized, val2014_resized, and vocab.pkl inside the data > big folder.
+4. Download the train 2014 and val2014 from the [MS COCO dataset][MS_COCO] and place them inside the data folder.
+5. Download the COCO train/val 2014 captions (also from the [MS COCO dataset][MS_COCO]) and place them inside the data > big > annotations folder.
+6. (Optional) Run the ``resize_dataset.py`` file in the reduce_dataset/ folder to create a smaller version of the dataset. This will be added to the 'small' folder inside the 'data' folder.
+7. Make sure all base configuration and hyper-parameter values are correct in ``cfg/config.py``.
 
-## Train STEM
+### Train STEM
+1. Make the sure configuration and hyper-parameters are correctly set in cfg/pretrain_STEM.yml.
+2. Run ``pretrain_STEM.py`` with ``cfg/pretrain_STEM.yml`` supplied as an argument.
 
-## Train STREAM
-
-## Train GAN
-Make sure the pretrained STEM and STREAM models are placed in the models folder.
-
-Parameters to configure:
-* Output dir
-* model dir
-* model paths
+### Train STREAM
+1. Make the sure configuration and hyper-parameters are correctly set in ``cfg/pretrain_STREAM.yml`` and ``cfg/pretrain_STREAM_original.yml``.
+2. Train the new version: Run ``pretrain_STREAM.yml`` with ``cfg/pretrain_STREAM.yml`` supplied as an argument.
+3. Train the original version: Run ``pretrain_STREAM.yml`` with ``cfg/pretrain_STREAM_original.yml`` supplied as an argument.
 
 
-1. Train STEM by running pretrain_DAMSM.py
-2. Train STREAM by running pretrain_STREAM.py
-3. Move trained STEM and STREAM models from step 1 and 2 to model directory that is configured in config
-4. Train the GAN by running main.py
-5. To check results, configure Experiments to point to where the trained GAN T2I generator and text encoder (from STEM) is saved and run... TO BE CONTINUED
+### Train GAN
+1. Make the sure configuration and hyper-parameters are correctly set in ``cfg/train_coco.yml`` and ``cfg/train_coco_original.yml``. Make sure to specify the correct path to the pretrained STEM and STREAM models.
+2. Train the new version: Run ``main.py`` with ``cfg/train_coco.yml`` supplied as an argument. Make sure to specify the path to the pre-trained new version of the STREAM models.
+3. Train the original version: Run ``main.py`` with ``cfg/train_coco_original.yml`` supplied as an argument. Make sure to specify the path to the pre-trained original version of the STREAM models.
+
+### Run experiments
+- To generate images using the trained models, run ``generate_images.py`` with ``cfg/experiments/gen_imgs_new.py`` or 
+``cfg/experiments/gen_imgs_original.yml`` supplied as an arugment.
+- To calculate the FID score for the new or orginal model, run  ``calculate_FID.py`` with either ``cfg/experiments/fid_new.yml`` or ``cfg/experiments/fid_original.yml``.
+- To calculate the BLEU score of the two STREAM modules, run ``pretrain_STREAM.yml`` supplied with ``cfg/validate_STREAM.yml`` and ``cfg/validate_STREAM_original.yml`` 
+to calculate the score for the new and original versions, respectively.
 
 
-## Pre-Trained Models
-1. STEM
-2. STREAM
-3. Generator and Discriminators
-
-
-
-
-# Main folder structure:
+## Main folder structure:
 ```
 project
 │   .gitignore
@@ -89,3 +84,7 @@ project
 
    
 ```
+
+[MS_COCO]: http://cocodataset.org/#download
+[github_img_caps]: https://github.com/ajamjoom/Image-Captions
+[MirrorGAN]: https://github.com/qiaott/MirrorGAN
