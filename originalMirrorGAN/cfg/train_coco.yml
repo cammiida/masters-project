@@ -1,0 +1,27 @@
+CONFIG_NAME: 'MirrorGAN_new'
+DATASET_NAME: 'coco'
+DATA_DIR: '../data/'
+CUDA: True
+OUTPUT_PATH: '../output/'
+
+TREE:
+    BRANCH_NUM: 3
+
+TRAIN:
+    BATCH_SIZE: 64  # 22
+    MAX_EPOCH: 650
+    SNAPSHOT_INTERVAL: 1
+    DISCRIMINATOR_LR: 0.0002
+    GENERATOR_LR: 0.0002
+    FLAG: True
+    NET_E: '../models/big/STEM/text_encoder115.pth'
+    NET_G: '../models/big/MirrorGAN/new/netG_epoch_129.pth'
+
+CAP:
+    EMBED_SIZE: 256
+    HIDDEN_SIZE: 512
+    NUM_LAYERS: 1
+    LEARNING_RATE: 0.001
+    CAPTION_CNN_PATH: '../models/big/STREAM/new/encoder_epoch4'
+    CAPTION_RNN_PATH: '../models/big/STREAM/new/decoder_epoch4'
+    USE_ORIGINAL: False

@@ -1,0 +1,29 @@
+DATASET_NAME: 'coco'
+
+CONFIG_NAME: 'STREAM_original'
+DATA_DIR: '../data/'
+DATA_SIZE: 'big'
+CUDA: True
+WORKERS: 8
+OUTPUT_PATH: '../output/'
+
+TRAIN:
+  MAX_EPOCH: 4
+  BATCH_SIZE: 32
+  RNN_GRAD_CLIP: 5.
+  FLAG: TRUE
+
+CAP:
+  EMBED_SIZE: 256
+  HIDDEN_SIZE: 512
+  NUM_LAYERS: 1
+  LEARNING_RATE: 0.001
+  CAPTION_CNN_PATH: '' # No pretrained model
+  CAPTION_RNN_PATH: '' # No pretrained model
+  USE_ORIGINAL: True
+
+TEXT:
+  CAPTIONS_PER_IMAGE: 5
+  EMBEDDING_DIM: 256
+  WORDS_NUM: 15
+

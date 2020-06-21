@@ -1,0 +1,25 @@
+DATASET_NAME: 'coco'
+
+CONFIG_NAME: 'STREAM_new'
+DATA_DIR: '../data/'
+DATA_SIZE: 'big'
+OUTPUT_PATH: '../output/'
+CUDA: True
+
+TRAIN:
+  FLAG: False
+  MAX_EPOCH: 4
+  BATCH_SIZE: 32
+  RNN_GRAD_CLIP: 5.
+
+CAP:
+  EMBED_SIZE: 256
+  HIDDEN_SIZE: 512
+  NUM_LAYERS: 1
+  LEARNING_RATE: 0.0004
+  CAPTION_CNN_PATH: '../models/big/STREAM/original/encoder_epoch4'
+  CAPTION_RNN_PATH: '../models/big/STREAM/original/decoder_epoch4'
+  USE_ORIGINAL: True
+
+TEXT:
+  WORDS_NUM: 15

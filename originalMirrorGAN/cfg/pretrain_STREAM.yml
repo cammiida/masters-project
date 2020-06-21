@@ -1,0 +1,25 @@
+DATASET_NAME: 'coco'
+
+CONFIG_NAME: 'STREAM_new'
+DATA_DIR: '../data/'
+DATA_SIZE: 'big'
+CUDA: True
+OUTPUT_PATH: '../output/'
+
+TRAIN:
+  BATCH_SIZE: 32
+  MAX_EPOCH: 4
+  RNN_GRAD_CLIP: 5.
+  FLAG: TRUE
+
+CAP:
+  EMBED_SIZE: 256
+  HIDDEN_SIZE: 512
+  NUM_LAYERS: 1
+  LEARNING_RATE: 0.0004
+  CAPTION_CNN_PATH: '' # No pretrained model
+  CAPTION_RNN_PATH: '' # No pretrained model
+  USE_ORIGINAL: False
+
+TEXT:
+  WORDS_NUM: 15

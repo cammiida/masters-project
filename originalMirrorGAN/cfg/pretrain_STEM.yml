@@ -1,0 +1,22 @@
+DATASET_NAME: 'coco'
+
+CONFIG_NAME: 'STEM'
+DATA_DIR: '../data/'
+DATA_SIZE: 'big'
+CUDA: True
+OUTPUT_PATH: '../output/'
+
+TREE:
+    BRANCH_NUM: 1
+    BASE_SIZE: 299
+
+TRAIN:
+    BATCH_SIZE: 48
+    NET_E: '' # No pretrained model
+    FLAG: True
+    ENCODER_LR: 0.002  # 0.0002best; 0.002good
+
+TEXT:
+    WORDS_NUM: 15
+
+

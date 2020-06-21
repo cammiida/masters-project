@@ -6,6 +6,8 @@ Based on https://github.com/qiaott/MirrorGAN and https://github.com/ajamjoom/Ima
 # Instructions to run the code
 
 TODO: Mention configuration of paths in config
+Install from requirements.txt with ``$ pip install requirements.txt``.
+
 
 ## Download and clean data
 1. Create three folders: (1) data, (2) models, and (3) output.

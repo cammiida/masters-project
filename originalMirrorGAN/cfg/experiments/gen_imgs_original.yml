@@ -1,0 +1,13 @@
+CONFIG_NAME: 'original'
+DATASET_NAME: 'coco'
+
+DATA_DIR: '../../data/'
+DATA_SIZE: 'big'
+CUDA: True
+OUTPUT_PATH: '../../output/experiments/'
+
+TRAIN:
+  NET_E: '../../models/big/STEM/text_encoder115.pth'
+  NET_G: '../../models/big/MirrorGAN/original'
+  BATCH_SIZE: 32
+
