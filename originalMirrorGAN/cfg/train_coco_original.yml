@@ -15,7 +15,7 @@ TRAIN:
     GENERATOR_LR: 0.0002
     FLAG: True
     NET_E: '../models/big/STEM/text_encoder115.pth'
-    NET_G: '../models/big/MirrorGAN/original/netG_epoch_129.pth'
+    NET_G: ''
 
 CAP:
     EMBED_SIZE: 256

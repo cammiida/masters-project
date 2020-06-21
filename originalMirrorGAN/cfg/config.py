@@ -62,7 +62,7 @@ __C.CAP.USE_ORIGINAL = False
 # Modal options
 __C.GAN = edict()
 __C.GAN.DF_DIM = 64
-__C.GAN.GF_DIM = 32
+__C.GAN.GF_DIM = 128 # 32
 __C.GAN.Z_DIM = 100
 __C.GAN.CONDITION_DIM = 100
 __C.GAN.R_NUM = 2
