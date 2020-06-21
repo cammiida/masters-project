@@ -1,15 +1,14 @@
 #!/bin/sh
-#SBATCH --partition=GPUQ
+#SBATCH --partition=CPUQ
 #SBATCH --account=share-ie-idi
-#SBATCH --time=48:00:00
+#SBATCH --time=10:00:00
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=8
-#SBATCH --mem=12000
-#SBATCH --job-name="train_STREAM_big"
-#SBATCH --output=train_STREAM_big.out
+#SBATCH --mem=128000
+#SBATCH --job-name="o_val_STREAM"
+#SBATCH --output=validate_STREAM_original.out
 #SBATCH --mail-user=camillmd@stud.ntnu.no
 #SBATCH --mail-type=ALL
-#SBATCH --gres=gpu:1
   
 WORKDIR=${SLURM_SUBMIT_DIR}
 cd ${WORKDIR}
@@ -26,7 +25,6 @@ module load GCCcore/.8.3.0
 module load Python/3.7.4
 source ../../.virtualenvs/masters-project/bin/activate
 
-cd ../code/
-
-python pretrain_STREAM.py --data_size big
+cd ../code
+python pretrain_STREAM.py --cfg cfg/validate_STREAM_original.yml
 

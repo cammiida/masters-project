@@ -5,8 +5,8 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=8
 #SBATCH --mem=12000
-#SBATCH --job-name="train_STEM_big"
-#SBATCH --output=train_STEM_big.out
+#SBATCH --job-name="o_train_STREAM"
+#SBATCH --output=train_STREAM_original.out
 #SBATCH --mail-user=camillmd@stud.ntnu.no
 #SBATCH --mail-type=ALL
 #SBATCH --gres=gpu:1
@@ -27,6 +27,5 @@ module load Python/3.7.4
 source ../../.virtualenvs/masters-project/bin/activate
 
 cd ../code
-
-python pretrain_STEM.py --data_size big
+python pretrain_STREAM.py --cfg cfg/pretrain_STREAM_original.yml
 

@@ -1,15 +1,15 @@
 #!/bin/sh
 #SBATCH --partition=GPUQ
-#SBATCH --gres=gpu:4
 #SBATCH --account=share-ie-idi
-#SBATCH --time=12:00:00
+#SBATCH --time=47:00:00
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=8
-#SBATCH --mem=12000
-#SBATCH --job-name="train_MirrorGAN_big_original"
-#SBATCH --output=train_MirrorGAN_big_original.out
+#SBATCH --mem=128000
+#SBATCH --job-name="tr_o_MirrorGAN"
+#SBATCH --output=train_MirrorGAN_original.out
 #SBATCH --mail-user=camillmd@stud.ntnu.no
 #SBATCH --mail-type=ALL
+#SBATCH --gres=gpu:4
   
 WORKDIR=${SLURM_SUBMIT_DIR}
 cd ${WORKDIR}
@@ -26,7 +26,6 @@ module load GCCcore/.8.3.0
 module load Python/3.7.4
 source ../../.virtualenvs/masters-project/bin/activate
 
-cd ../code 
-
-python main.py --data_size big --original_STREAM True
+cd ../code
+python main.py --cfg cfg/train_coco_original.yml
 

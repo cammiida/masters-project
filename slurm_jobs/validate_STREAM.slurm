@@ -1,13 +1,12 @@
 #!/bin/sh
-#SBATCH --partition=GPUQ
-#SBATCH --gres=gpu:4
+#SBATCH --partition=CPUQ
 #SBATCH --account=share-ie-idi
-#SBATCH --time=4-00:00:00
+#SBATCH --time=10:00:00
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=8
 #SBATCH --mem=128000
-#SBATCH --job-name="fc_train_MirrorGAN_big_original"
-#SBATCH --output=train_MirrorGAN_big_original_from_checkpoint.out
+#SBATCH --job-name="n_val_STREAM"
+#SBATCH --output=validate_STREAM.out
 #SBATCH --mail-user=camillmd@stud.ntnu.no
 #SBATCH --mail-type=ALL
   
@@ -26,7 +25,6 @@ module load GCCcore/.8.3.0
 module load Python/3.7.4
 source ../../.virtualenvs/masters-project/bin/activate
 
-cd ../code 
-
-python main.py --data_size big --cfg cfg/from_checkpoint.yml --original_STREAM True
+cd ../code
+python pretrain_STREAM.py --cfg cfg/validate_STREAM.yml
 

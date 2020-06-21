@@ -1,15 +1,15 @@
 #!/bin/sh
 #SBATCH --partition=GPUQ
 #SBATCH --account=share-ie-idi
-#SBATCH --time=24:00:00
+#SBATCH --time=48:00:00
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=8
-#SBATCH --mem=12000
-#SBATCH --job-name="train_STREAM_small"
-#SBATCH --output=train_STREAM_small.out
+#SBATCH --mem=128000
+#SBATCH --job-name="tr_n_MirrorGAN"
+#SBATCH --output=train_MirrorGAN.out
 #SBATCH --mail-user=camillmd@stud.ntnu.no
 #SBATCH --mail-type=ALL
-#SBATCH --gres=gpu:1
+#SBATCH --gres=gpu:4
   
 WORKDIR=${SLURM_SUBMIT_DIR}
 cd ${WORKDIR}
@@ -26,7 +26,6 @@ module load GCCcore/.8.3.0
 module load Python/3.7.4
 source ../../.virtualenvs/masters-project/bin/activate
 
-cd ../code/
-
-python pretrain_STREAM.py
+cd ../code
+python main.py --cfg cfg/train_coco.yml
 

@@ -1,15 +1,15 @@
 #!/bin/sh
 #SBATCH --partition=GPUQ
-#SBATCH --gres=gpu:4
 #SBATCH --account=share-ie-idi
-#SBATCH --time=12:00:00
+#SBATCH --time=2:00:00
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=8
 #SBATCH --mem=128000
-#SBATCH --job-name="fc_train_MirrorGAN_big"
-#SBATCH --output=train_MirrorGAN_big_from_checkpoint.out
+#SBATCH --job-name="FID_new"
+#SBATCH --output=calculate_FID.out
 #SBATCH --mail-user=camillmd@stud.ntnu.no
 #SBATCH --mail-type=ALL
+#SBATCH --gres=gpu:1
   
 WORKDIR=${SLURM_SUBMIT_DIR}
 cd ${WORKDIR}
@@ -27,6 +27,5 @@ module load Python/3.7.4
 source ../../.virtualenvs/masters-project/bin/activate
 
 cd ../code
-
-python main.py --data_size big --cfg cfg/from_checkpoint.yml
+python calculate_FID.py --cfg cfg/experiments/fid_new.yml
 

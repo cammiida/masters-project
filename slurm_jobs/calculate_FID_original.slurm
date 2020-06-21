@@ -1,12 +1,12 @@
 #!/bin/sh
 #SBATCH --partition=GPUQ
 #SBATCH --account=share-ie-idi
-#SBATCH --time=24:00:00
+#SBATCH --time=1:00:00
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=8
-#SBATCH --mem=12000
-#SBATCH --job-name="train_STEM_small"
-#SBATCH --output=train_STEM_small.out
+#SBATCH --mem=128000
+#SBATCH --job-name="FID_original"
+#SBATCH --output=calculate_FID_original.out
 #SBATCH --mail-user=camillmd@stud.ntnu.no
 #SBATCH --mail-type=ALL
 #SBATCH --gres=gpu:1
@@ -27,6 +27,5 @@ module load Python/3.7.4
 source ../../.virtualenvs/masters-project/bin/activate
 
 cd ../code
-
-python pretrain_STEM.py
+python calculate_FID.py --cfg cfg/experiments/fid_original.yml
 
