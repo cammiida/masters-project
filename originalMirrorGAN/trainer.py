@@ -348,6 +348,8 @@ class Trainer(object):
             if epoch % cfg.TRAIN.SNAPSHOT_INTERVAL == 0:  # and epoch != 0:
                 self.save_model(netG, avg_param_G, netsD, epoch)
                 self.save_losses(D_losses, G_losses, epoch)
+                G_losses = []
+                D_losses = []
 
         self.save_model(netG, avg_param_G, netsD, self.max_epoch)
 

@@ -182,20 +182,13 @@ if __name__ == '__main__':
     }
 
     # DESCRIPTIVE SENTENCES
-    #exp(experimenter_new, sentences, start_epoch=start_epoch, g_dir=g_dir, max_epoch=max_epoch,
-    #    epoch_inc=epoch_inc, sent_type='descriptive', num_imgs=num_imgs)
-
-    #exp(experimenter_original, sentences, g_dir=g_dir, start_epoch=start_epoch, max_epoch=max_epoch,
-    #    epoch_inc=epoch_inc, sent_type='descriptive', num_imgs=num_imgs)
+    exp(experimenter_new, sentences, start_epoch=start_epoch, g_dir=g_dir, max_epoch=max_epoch,
+        epoch_inc=epoch_inc, sent_type='descriptive', num_imgs=num_imgs)
 
 
     # NONDESCRIPTIVE SENTENCES
-    exp(experimenter_new, sentences, g_dir=g_dir, start_epoch=start_epoch, max_epoch=max_epoch,
-        epoch_inc=epoch_inc, sent_type='nondescriptive', num_imgs=num_imgs)
-
-    #exp(experimenter_original, sentences, g_dir=g_dir, start_epoch=start_epoch, max_epoch=max_epoch,
-    #    epoch_inc=epoch_inc, version='original', sent_type='nondescriptive', num_imgs=num_imgs)
-
+    #exp(experimenter_new, sentences, g_dir=g_dir, start_epoch=start_epoch, max_epoch=max_epoch,
+    #    epoch_inc=epoch_inc, sent_type='nondescriptive', num_imgs=num_imgs)
 
 
 
