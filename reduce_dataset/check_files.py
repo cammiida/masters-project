@@ -1,9 +1,8 @@
 import os
 import json
 import pickle
-from STREAM.processData import Vocabulary
 from random import randint
-from tqdm import tqdm, trange
+from tqdm import tqdm
 import copy
 
 def check_json(path):
@@ -103,8 +102,6 @@ def check_create_json(old_root, new_root):
         tqdm.write("value: %s" % value)
         tqdm.write("value['check_key']: %s" % value["check_key"])
         tqdm.write("randint: %d" % randint(0, len(new_json["images"])-1))
-
-
 
 
 if __name__ == '__main__':

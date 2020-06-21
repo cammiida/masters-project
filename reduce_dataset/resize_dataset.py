@@ -6,20 +6,19 @@ import json
 import copy
 from shutil import copyfile
 from random import randint
-from tqdm import tqdm, trange
+from tqdm import tqdm
 
 ######################
 #   HELPER METHODS   #
 ######################
 def filter_dict(obj_dict, obj_key, check_key, control_list, extension='', control_key=None):
     i = 0
-    count = 1
+    # count = 1
     new_ctrl_list = []
 
     objects = obj_dict[obj_key] # e.g. annotations
-    org_len = len(objects) # len(annotations)
+    # org_len = len(objects) # len(annotations)
     while i < len(objects):
-
         obj = objects[i] # e.g. annotation
         value = obj[check_key] # for annotations: image_id
         if isinstance(value, str): value = value.replace(extension, '')
@@ -32,6 +31,7 @@ def filter_dict(obj_dict, obj_key, check_key, control_list, extension='', contro
         else:
             objects.pop(i)
         '''
+
         count += 1
         if count % 1000 == 0 or count == org_len:
             tqdm.write("Number of %s checked: %d/%d" % (obj_key, count, org_len) )
@@ -69,9 +69,9 @@ def load_json(path):
     return data
 
 
-def get_train_test_filenames(root):
-    train_dir = os.path.join(root, 'train')
-    test_dir = os.path.join(root, 'test')
+def get_train_test_filenames():
+    train_dir = os.path.join(small_root, 'train')
+    test_dir = os.path.join(small_root, 'test')
     file_name = 'filenames.pickle'
 
     train_filenames = load_pickle(train_dir, file_name)
@@ -111,10 +111,10 @@ def create_dir(path):
 #   END HELPER METHODS   #
 ##########################
 
-def generate_sample_filenames(source, percentile):
+def generate_sample_filenames(percentile):
     tqdm.write("Getting sample filenames...")
-    train_dir = os.path.join(source, 'train')
-    test_dir = os.path.join(source, 'test')
+    train_dir = os.path.join(big_root, 'train')
+    test_dir = os.path.join(big_root, 'test')
     file_name = 'filenames.pickle'
     train_filenames = load_pickle(train_dir, file_name)
     test_filenames = load_pickle(test_dir, file_name)
@@ -125,20 +125,20 @@ def generate_sample_filenames(source, percentile):
     return sample_train_filenames, sample_test_filenames
 
 
-def save_samples(destination, train_sample, test_sample):
+def save_samples(train_sample, test_sample):
     tqdm.write("Saving sample filenames in filenames.pickle...")
-    save_pickle(train_sample, os.path.join(destination, 'train'), 'filenames.pickle')
-    save_pickle(test_sample, os.path.join(destination, 'test'), 'filenames.pickle')
+    save_pickle(train_sample, os.path.join(small_root, 'train'), 'filenames.pickle')
+    save_pickle(test_sample, os.path.join(small_root, 'test'), 'filenames.pickle')
 
 
-def copy_files(source, destination, filenames, extension):
-    tqdm.write("Copying files from %s to %s..." % (source, destination))
+def copy_files(filenames, extension):
+    tqdm.write("Copying files from %s to %s..." % (big_root, small_root))
 
-    files = os.listdir(source)
+    files = os.listdir(big_root)
     for i, f in enumerate(tqdm(files)):
         if f.replace(extension, '') in filenames:
-            src = os.path.join(source, f)
-            dst = os.path.join(destination, f)
+            src = os.path.join(big_root, f)
+            dst = os.path.join(small_root, f)
 
             copyfile(src, dst)
 
@@ -146,10 +146,10 @@ def copy_files(source, destination, filenames, extension):
                 tqdm.write("Could not copy file %s to %s." % (src, dst))
 
 
-def create_json(old_root, new_root, json_name, filenames, keys):
+def create_json(json_name, filenames, keys):
     dir_name = 'annotations'
-    old_json_path = os.path.join(old_root, dir_name, json_name)
-    new_json_path = os.path.join(new_root, dir_name, json_name)
+    old_json_path = os.path.join(big_root, dir_name, json_name)
+    new_json_path = os.path.join(small_root, dir_name, json_name)
     tqdm.write("Creating new json file %s from %s..." % (new_json_path, old_json_path))
 
     with open(old_json_path, 'rb') as old_json:
@@ -173,7 +173,7 @@ def create_json(old_root, new_root, json_name, filenames, keys):
         tqdm.write("Length of %s before start: %s" % (key, str(lengths[key])))
         tqdm.write("Length of %s after run: %s" % (key, str(len(new_json[key]))))
 
-    new_dir_path = os.path.join(new_root, dir_name)
+    new_dir_path = os.path.join(small_root, dir_name)
     if not os.path.isdir(new_dir_path):
         os.mkdir(new_dir_path)
     if os.path.isfile(new_json_path):
@@ -184,9 +184,9 @@ def create_json(old_root, new_root, json_name, filenames, keys):
         tqdm.write("Saved json to: %s " % new_json_path)
 
 
-def create_annotations(source, destination):
+def create_annotations():
     # Get filenames from filenames.pickle
-    train_sample, test_sample = get_train_test_filenames(root=destination)
+    train_sample, test_sample = get_train_test_filenames()
 
     tqdm.write("Train sample %s " % train_sample)
     tqdm.write("Test sample %s" % test_sample)
@@ -209,13 +209,13 @@ def create_annotations(source, destination):
                   {"json_name": "person_keypoints_val2014.json", "keys": keys, "filenames": test_sample}]
 
     for json_file in json_files:
-        create_json(old_root=source,
-                    new_root=destination,
-                    json_name=json_file["json_name"],
-                    filenames=json_file["filenames"],
-                    keys=json_file["keys"])
+        create_json(json_name=json_file["json_name"], filenames=json_file["filenames"], keys=json_file["keys"])
 
-def gen_ex_fnames_n_caps(caption_file_path, example_filenames_dest, example_captions_dest, n_files=9):
+
+def gen_ex_fnames_n_caps(n_caps=9):
+    example_filenames_dest = os.path.join(small_root, 'example_filenames.txt')
+    example_captions_dest = os.path.join(small_root, 'example_captions.txt')
+    caption_file_path = os.path.join(small_root, 'annotations/captions_val2014.json')
 
     tqdm.write("Generating example filenames and captions...")
     captions_dict = load_json(caption_file_path)
@@ -235,7 +235,7 @@ def gen_ex_fnames_n_caps(caption_file_path, example_filenames_dest, example_capt
     example_filenames_file.write("example_captions\n")
 
     i = 0
-    while i < n_files:
+    while i < n_caps:
         idx = randint(0, len(images)-1)
         img_id = images[idx]["id"]
         filename = images[idx]["file_name"].replace('.jpg', '')
@@ -250,22 +250,26 @@ def gen_ex_fnames_n_caps(caption_file_path, example_filenames_dest, example_capt
         except StopIteration:
             tqdm.write("Could not find corresponding caption for image with id %s" % str(img_id))
 
+    example_filenames_file.close()
+    example_captions_file.close()
+
     tqdm.write("Done creating %s and %s" % (example_filenames_dest, example_captions_dest))
 
 
-def copy_text_files(source, destination):
+def copy_text_files():
     tqdm.write("Copying text files...")
-    train_filenames, test_filenames = get_train_test_filenames(root=destination)
+    # Get the copied files' names
+    train_filenames, test_filenames = get_train_test_filenames()
     train_test_filenames = train_filenames + test_filenames
-    copy_files(source=os.path.join(source, 'text'),
-               destination=os.path.join(destination, 'text'),
-               extension='.txt',
-               filenames=train_test_filenames)
+
+    copy_files(extension='.txt', filenames=train_test_filenames)
 
 
-def copy_images(source, destination, folders):
+def copy_images(folders):
     tqdm.write("Copying images...")
-    train_filenames, test_filenames = get_train_test_filenames(root=destination)
+    # Get the copied files' names
+    train_filenames, test_filenames = get_train_test_filenames()
+
     filenames=[]
     for folder_name in tqdm(folders):
         if "train" in folder_name:
@@ -273,39 +277,27 @@ def copy_images(source, destination, folders):
         elif "val" in folder_name:
             filenames = test_filenames
 
-        copy_files(source=os.path.join(source, folder_name),
-                   destination=os.path.join(destination, folder_name),
-                   extension='.jpg',
-                   filenames=filenames)
+        copy_files(extension='.jpg', filenames=filenames)
 
-def main(big_root, small_root):
+def main():
     # GET SAMPLE OF FILENAMES FROM big_root AND SAVE THEM TO small_root
-    percentage = 0.05
-    train_filenames, test_filenames = generate_sample_filenames(big_root, percentage)
-    save_samples(small_root, train_filenames, test_filenames)
+    train_filenames, test_filenames = generate_sample_filenames(percentage)
+    save_samples(train_filenames, test_filenames)
 
     # GENERATE ALL FILES IN ANNOTATIONS AND FILTER OUT ALL ENTRIES THAT DO NOT CORRESPOND TO THE SAMPLE FILENAMES
-    create_annotations(source=big_root, destination=small_root)
+    create_annotations()
 
     # Generate example_captions.txt, example_filenames.txt
-    # TODO: Move variable declarations into method?
-
-    filenames_dest = os.path.join(small_root, 'example_filenames.txt')
-    captions_dest = os.path.join(small_root, 'example_captions.txt')
-    cap_path = os.path.join(small_root, 'annotations/captions_val2014.json')
-    gen_ex_fnames_n_caps(caption_file_path=cap_path,
-                         example_filenames_dest=filenames_dest,
-                         example_captions_dest=captions_dest)
+    gen_ex_fnames_n_caps()
 
     # COPY TEXT FILES CORRESPONDING TO THE SAMPLE FILENAMES FROM big_root TO small_root
-    copy_text_files(source=big_root, destination=small_root)
+    copy_text_files()
 
     # COPY IMAGES CORRESPONDING TO THE SAMPLE FILENAMES FROM big_root TO small_root
     # COPY IMAGES IN train2014/ and val2014
     folder_names = ["train2014", "val2014", "train2014_resized", "val2014_resized"]
-    copy_images(source=big_root,
-                destination=small_root,
-                folders=folder_names)
+    copy_images(folders=folder_names)
+
 
 def test_create_annotations():
     filenames = ["COCO_val2014_000000391895"]
@@ -330,10 +322,13 @@ def test_create_annotations():
     print("control_list: ", control_list)
 
 if __name__ == '__main__':
+
+    # PARAMETERS
     big_root = '../data/big'
     small_root = '../data/small'
+    percentage = 0.05
 
-    main(big_root, small_root)
+    main()
 
 
 
